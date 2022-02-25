@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "unfancyRemote_components")(type "KiCad")(uri "${KIPRJMOD}/unfancyRemote_components.pretty")(options "")(descr ""))
+)
