@@ -85,7 +85,7 @@ uint8_t saveddevice;
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println(F("2_Register_Test Starting"));
 
   SPI.begin();

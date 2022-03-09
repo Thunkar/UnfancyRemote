@@ -38,7 +38,7 @@
 
 #include <SPI.h>
 #include <SX128XLT.h>
-#include "Settings.h"
+#include "settings.h"
 #include <ProgramLT_Definitions.h>
 
 SX128XLT LT;
@@ -143,25 +143,23 @@ void packet_is_Error()
 
 void setup()
 {
-
-
   Serial.begin(115200);
-
-  PPM.attach(ppmPin);                     //connect pin pinservoX1 to ServoX1 object
-
+    
   SPI.begin();
 
   if (LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
   {
-    Serial.println(F("Ready"));
+    Serial.println(F("LoRa ready"));
   }
   else
   {
     Serial.println(F("Device error"));
   }
 
+  PPM.attach(ppmPin);
+
   LT.setupLoRa(Frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
 
-  Serial.println(F("36_Remote_Control_Servo_Receiver ready"));
+  Serial.println(F("Rx ready"));
   Serial.println();
 }

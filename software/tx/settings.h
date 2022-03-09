@@ -23,10 +23,9 @@ const int8_t DIO3 = -1;                         //DIO3 on LoRa device, normally 
 const int8_t RX_EN = -1;                        //pin for RX enable, used on some SX1280 devices, set to -1 if not used
 const int8_t TX_EN = -1;                        //pin for TX enable, used on some SX1280 devices, set to -1 if not used
 
-
 #define LORA_DEVICE DEVICE_SX1280               //this is the device we are using
 
-const int8_t throttlePin = A1;                   //analog pin for the joystick 1 X pot
+const int8_t throttlePin = A2;                   //analog pin for the joystick 1 X pot
   
 const uint32_t TXIdentity = 123 ;               //define a transmitter number, the receiver must use the same number
                                                 //range is 0 to 255

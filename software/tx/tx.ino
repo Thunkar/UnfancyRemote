@@ -46,12 +46,60 @@ uint8_t TXPacketL;
 
 uint16_t throttleValue;                    //variable to read the value from the analog pin
 
-int calMax = 500;
-int calMin = 270;
+int calMax = 620;
+int calMin = 380;
+bool inverted = false;
 
-#define DEBUG                              //comment in thie line (remove the two // at the beggining) for debug output
-#define SX128XDEBUG
-#define SX128XDEBUGPINS
+int ON = 10;
+int BSense = A0;
+int PPM_L1 = 2;
+int L2 = 3;
+int L3 = 4;
+int L4 = 5;
+int MOTOR = A4;
+
+int buttonState;            
+int lastButtonState = LOW;  
+
+unsigned long lastPressedTime = 0;
+unsigned long offDelay = 1500;    
+
+#define DEBUG
+
+void runONSequence() {
+    digitalWrite(MOTOR, HIGH);
+    digitalWrite(PPM_L1, HIGH);
+    delay(100);
+    digitalWrite(L2, HIGH);
+    delay(100);
+    digitalWrite(L3, HIGH);
+    delay(100);
+    digitalWrite(L3, HIGH);
+    delay(100);
+    digitalWrite(L4, HIGH);
+    digitalWrite(ON, HIGH);
+    delay(100);
+    digitalWrite(MOTOR, LOW);
+}
+
+void checkOff() {
+  int reading = analogRead(BSense) > 512;
+  if (reading != lastButtonState) {
+    lastPressedTime = millis();
+  }
+
+  if ((millis() - lastPressedTime) > offDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+      if (buttonState == HIGH) {
+        digitalWrite(MOTOR, HIGH);
+        digitalWrite(ON, LOW);
+      }
+    }
+  }
+
+  lastButtonState = reading;
+}
 
 void loop()
 {
@@ -62,6 +110,9 @@ void loop()
     Serial.print(F("Send Error - IRQreg,"));
     Serial.print(LT.readIrqStatus(), HEX);
   }
+
+  checkOff();
+  
 }
 
 
@@ -72,7 +123,7 @@ uint8_t sendThrottlePacket(uint16_t throttleValue)
 
   int scaledValue = map(throttleValue, calMin, calMax, 0, 254);
   scaledValue = constrain(scaledValue, 0, 254);
-  byte encodedValue = 254 - (byte)scaledValue;
+  byte encodedValue = inverted ? 254 - (byte)scaledValue : (byte)scaledValue;
   
   LT.startWriteSXBuffer(0);                      //start the write packet to buffer process
   LT.writeUint8(RControl1);                      //this is the packet type
@@ -100,6 +151,13 @@ uint8_t sendThrottlePacket(uint16_t throttleValue)
 
 void setup()
 {
+  pinMode(PPM_L1, OUTPUT);
+  pinMode(L2, OUTPUT);
+  pinMode(L3, OUTPUT);
+  pinMode(L4, OUTPUT);
+  pinMode(ON, OUTPUT);
+  pinMode(MOTOR, OUTPUT);
+  runONSequence();
 
   Serial.begin(115200);
 
@@ -108,7 +166,7 @@ void setup()
 
   if (LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
   {
-    Serial.println(F("Init complete"));
+    Serial.println(F("LoRa ready"));
   }
   else
   {
@@ -117,5 +175,7 @@ void setup()
 
   LT.setupLoRa(Frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
 
-  Serial.println(F("35_Remote_Control_Servo_Transmitter ready"));
+  Serial.println(F("Device ready"));
+
+  
 }
