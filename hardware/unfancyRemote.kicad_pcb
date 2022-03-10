@@ -296,7 +296,7 @@
 
   (footprint "LED_SMD:LED_0805_2012Metric" (layer "F.Cu")
     (tedit 5F68FEF1) (tstamp 229089b5-d96a-45a7-930c-5b21e68180d7)
-    (at 120.65 74.93 180)
+    (at 121.92 73.914 180)
     (descr "LED SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing), generated with kicad-footprint-generator")
     (tags "LED")
     (property "LCSC" "C84256")
@@ -944,7 +944,7 @@
 
   (footprint "LED_SMD:LED_0805_2012Metric" (layer "F.Cu")
     (tedit 5F68FEF1) (tstamp 899a4caf-0563-4c2a-9bca-5aa28747ef75)
-    (at 120.65 81.28 180)
+    (at 121.92 80.518 180)
     (descr "LED SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: https://docs.google.com/spreadsheets/d/1BsfQQcO9C6DZCsRaXUlFlo91Tg2WpOkGARC1WS5S8t0/edit?usp=sharing), generated with kicad-footprint-generator")
     (tags "LED")
     (property "LCSC" "C84256")
@@ -1459,7 +1459,7 @@
 
   (footprint "Resistor_SMD:R_0603_1608Metric" (layer "F.Cu")
     (tedit 5F68FEEE) (tstamp d8abe8ec-485d-44a5-b5c3-6d01cfd7fd8c)
-    (at 120.65 73.025)
+    (at 121.92 71.882)
     (descr "Resistor SMD 0603 (1608 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
     (tags "resistor")
     (property "LCSC" "C22962")
@@ -1663,7 +1663,7 @@
 
   (footprint "Resistor_SMD:R_0603_1608Metric" (layer "F.Cu")
     (tedit 5F68FEEE) (tstamp eed5fd95-a7ce-441e-bbe1-d330431c5e6d)
-    (at 120.65 79.375)
+    (at 121.92 78.486)
     (descr "Resistor SMD 0603 (1608 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
     (tags "resistor")
     (property "LCSC" "C22962")
@@ -1996,7 +1996,6 @@
   (segment (start 138.43 105.41) (end 137.795 106.045) (width 0.25) (layer "B.Cu") (net 32) (tstamp 00fa8725-987f-4a1b-a8fb-edf63b404004))
   (segment (start 138.3405 93.345) (end 138.43 93.4345) (width 0.25) (layer "B.Cu") (net 32) (tstamp 644c1aa7-bb47-43ff-9985-f1193c633b37))
   (segment (start 138.43 93.4345) (end 138.43 105.41) (width 0.25) (layer "B.Cu") (net 32) (tstamp 6e6e3c2c-fa34-424f-80ac-155aca143657))
-  (segment (start 119.7125 75.2325) (end 120.015 74.93) (width 0.25) (layer "F.Cu") (net 33) (tstamp 3cf566ee-48cb-46e1-a516-e5da40a787d0))
 
   (zone (net 2) (net_name "GND") (layers F&B.Cu) (tstamp 57281514-e0c9-418e-b4ea-ee0d0a783fe1) (hatch edge 0.508)
     (connect_pads (clearance 0.508))

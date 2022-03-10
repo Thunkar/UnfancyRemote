@@ -46,9 +46,9 @@ uint8_t TXPacketL;
 
 uint16_t throttleValue;                    //variable to read the value from the analog pin
 
-int calMax = 620;
-int calMin = 380;
-bool inverted = false;
+int calMax = 800;
+int calMin = 255;
+bool inverted = true;
 
 int ON = 10;
 int BSense = A0;
