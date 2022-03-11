@@ -46,9 +46,10 @@ uint8_t TXPacketL;
 
 uint16_t throttleValue;                    //variable to read the value from the analog pin
 
-int calMax = 800;
-int calMin = 255;
-bool inverted = true;
+int calMax = 645;
+int center = 513;
+int calMin = 270;
+bool inverted = false;
 
 int ON = 10;
 int BSense = A0;
@@ -67,7 +68,6 @@ unsigned long offDelay = 1500;
 #define DEBUG
 
 void runONSequence() {
-    digitalWrite(MOTOR, HIGH);
     digitalWrite(PPM_L1, HIGH);
     delay(100);
     digitalWrite(L2, HIGH);
@@ -79,6 +79,8 @@ void runONSequence() {
     digitalWrite(L4, HIGH);
     digitalWrite(ON, HIGH);
     delay(100);
+    digitalWrite(MOTOR, HIGH);
+    delay(300);
     digitalWrite(MOTOR, LOW);
 }
 
@@ -121,7 +123,7 @@ uint8_t sendThrottlePacket(uint16_t throttleValue)
   //The SX12XX buffer is filled with variables of a known type and in a known sequence. Make sure the
   //receiver uses the same variable types and sequence to read variables out of the receive buffer.
 
-  int scaledValue = map(throttleValue, calMin, calMax, 0, 254);
+  int scaledValue = throttleValue > center ? map(throttleValue, center, calMax, 127, 254) : map(throttleValue, calMin, center, 0, 126); 
   scaledValue = constrain(scaledValue, 0, 254);
   byte encodedValue = inverted ? 254 - (byte)scaledValue : (byte)scaledValue;
   
