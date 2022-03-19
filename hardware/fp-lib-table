@@ -1,3 +1,4 @@
 (fp_lib_table
   (lib (name "unfancyRemote_components")(type "KiCad")(uri "${KIPRJMOD}/unfancyRemote_components.pretty")(options "")(descr ""))
+  (lib (name "Connector_wire")(type "KiCad")(uri "${KIPRJMOD}/Connector_Wire.pretty")(options "")(descr ""))
 )
