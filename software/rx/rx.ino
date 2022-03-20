@@ -46,9 +46,11 @@ SX128XLT LT;
 #include <Servo.h>
 Servo PPM;                             //create the servo object
 
-uint8_t throttleValue;                   //variable to read the value from the analog pin
 uint8_t RXPacketL;                         //length of received packet
 uint8_t RXPacketType;                      //type of received packet
+
+
+uint8_t throttleValue = 127;
 
 #define DEBUG
 
@@ -57,7 +59,7 @@ void loop()
 {
   uint16_t IRQStatus;
   
-  RXPacketL = LT.receiveSXBuffer(0, 0, WAIT_RX);   //returns 0 if packet error of some sort
+  RXPacketL = LT.receiveSXBuffer(0, 500, WAIT_RX);   //returns 0 if packet error of some sort
 
   while (!digitalRead(DIO1)){
     Serial.println(F("no signal"));                      //wait for DIO1 to go high
@@ -71,6 +73,16 @@ void loop()
   {
     packet_is_Error();
   }
+  
+  uint16_t throttlePulse = map(throttleValue, 0, 254, 1000, 2000);
+
+  Serial.print(F("Throttle,"));
+  Serial.print(throttleValue);
+  Serial.print(F(",PPM,"));
+  Serial.print(throttlePulse);
+  Serial.println();
+  
+  PPM.writeMicroseconds(throttlePulse);
 
 }
 
@@ -80,7 +92,6 @@ uint8_t packet_is_OK()
   //packet has been received, now read from the SX12xx Buffer using the same variable type and
   //order as the transmit side used.
   uint8_t TXIdentity;
-  uint16_t throttlePulse;
 
   LT.startReadSXBuffer(0);                //start buffer read at location 0
   RXPacketType = LT.readUint8();          //read in the packet type
@@ -105,23 +116,13 @@ uint8_t packet_is_OK()
     return 0;
   }
 
-  throttlePulse = map(throttleValue, 0, 254, 1000, 2000);
-
-  Serial.print(TXIdentity);
-  Serial.print(F(",Throttle,"));
-  Serial.print(throttleValue);
-  Serial.print(F(",PPM,"));
-  Serial.print(throttlePulse);
-  Serial.println();
-  
-  PPM.writeMicroseconds(throttlePulse);
-
   return RXPacketL;
 }
 
 
 void packet_is_Error()
 {
+  throttleValue = 127;
   uint16_t IRQStatus;
   int16_t PacketRSSI;
   IRQStatus = LT.readIrqStatus();
