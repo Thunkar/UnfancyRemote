@@ -9,7 +9,7 @@ SX128XLT LT;
 const int TASKS_LENGTH = 8;
 
 char *taskNames[] = { "readThrottle", "sendThrottlePacket", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats" };
-long periods[] = { 20, 20, 100, 1000, 50, 5, 5, 5000 };
+unsigned long periods[] = { 10, 10, 100, 1000, 50, 2, 2, 1000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -27,7 +27,7 @@ int lastLEDToggled[] = { 0, 0, 0, 0 };
 int motorStatus = LOW;
 int motorPeriod = -1;
 int lastMotorToggled = 0;
-int motorResetCounter = 0;
+int motorResetCounter = -1;
  
 int lastButtonState = LOW;  
 
@@ -85,11 +85,13 @@ void pulseMotor(int times, unsigned long period) {
 }
 
 void changeMode(int mode) {
+  Serial.println("changing mode");
+  currentDisplayMode = -1;
+  nextDisplayMode = mode;
   for(int i = 0; i < LEDS_LENGTH; i++) {
     setLEDOff(i);
   }
   pulseMotor(2, 50);
-  nextDisplayMode = mode;
 }
 
 void displayMode(unsigned long now) {
@@ -119,7 +121,7 @@ void checkButton(unsigned long now) {
     lastPressedTime = now;
   }
 
-  if((now - lastPressedTime > debounceDelay) && reading != buttonState) {
+  if(now - lastPressedTime > debounceDelay) {
       buttonState = reading;
   }
 
@@ -188,7 +190,7 @@ void setLEDs(unsigned long now) {
       LEDStatus[i] = LOW;
     } else if(LEDPeriods[i] == 0) {
       LEDStatus[i] = HIGH;
-    } else if(now - lastLEDToggled[i] > LEDPeriods[i]) {
+    } else if(now - lastLEDToggled[i] >= LEDPeriods[i]) {
       int isBlinking = LEDResetCounters[i] != 0;
       if(isBlinking) {
         LEDStatus[i] = !LEDStatus[i];
@@ -209,7 +211,7 @@ void setMotor(unsigned long now) {
     motorStatus = LOW;  
   } else if (motorPeriod == 0) {
     motorStatus = HIGH;
-  } else if (now - lastMotorToggled > motorPeriod) {
+  } else if (now - lastMotorToggled >= motorPeriod) {
     int isPulsing = motorResetCounter != 0;
     if(isPulsing) {
       motorStatus = !motorStatus;
@@ -226,16 +228,17 @@ void setMotor(unsigned long now) {
 }
 
 void printStats(unsigned long now) {
-  int ellapsed = now - lastRun[TASKS_LENGTH-1];
-  Serial.print("----- VBat: ");
+  float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
+  Serial.print("Ellapsed: ");
+  Serial.print(ellapsed);
+  Serial.print("s | VBat: ");
   Serial.print(batteryVoltage);
   Serial.print("V | Mode: ");
-  Serial.print(currentDisplayMode);
-  Serial.println(" -----");
+  Serial.println(currentDisplayMode);
   Serial.println("-------------- TASKS --------------");
   for(int i = 0; i < TASKS_LENGTH - 1; i++) {
     char prBuffer[45];
-    int frequency = round(executions[i]*1000 / float(ellapsed));
+    int frequency = round(executions[i] / ellapsed);
     sprintf(prBuffer, "%-20s | %5dHz", taskNames[i], frequency);
     Serial.print(prBuffer);
     Serial.println("");
@@ -253,10 +256,10 @@ void loop()
 {
   for(int i = 0; i < TASKS_LENGTH; i++) {
     unsigned long now = millis();
-    if(now - lastRun[i] > periods[i]) {
+    if(now - lastRun[i] >= periods[i]) {
       tasks[i](now);
       executions[i]++;
-      lastRun[i] = now;
+      lastRun[i] = millis();
     }
   }
 }
