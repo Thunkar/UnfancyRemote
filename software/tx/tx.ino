@@ -9,7 +9,7 @@ SX128XLT LT;
 const int TASKS_LENGTH = 8;
 
 char *taskNames[] = { "readThrottle", "sendThrottlePacket", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats" };
-unsigned long periods[] = { 5, 5, 100, 1000, 50, 10, 10, 1000 };
+unsigned long periods[] = { 2, 10, 100, 1000, 50, 10, 10, 1000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -50,6 +50,21 @@ const int BATTERY_THRESHOLDS_LENGTH = 5;
 volatile int txDone = 1;
 bool firstRound = true;
 
+bool error = false;
+int errors = 0;
+char errorReason[50];
+float currentRSSI = -100.0;
+float currentSNR = -100.0;
+
+unsigned long packets = 0;
+unsigned long TMPackets = 0;
+float boardVoltage = 0.0;
+
+unsigned long TMPeriod = 250;
+unsigned long lastTMPacketReceived = 0;
+
+unsigned int requestTM = 0;
+
 #define DEBUG
 
 void pciSetup(byte pin)
@@ -57,6 +72,16 @@ void pciSetup(byte pin)
     *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
     PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
     PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
+}
+
+void clearError() {
+  error = false;
+}
+
+void setError(char reason[]) {
+  errors++;
+  error = true;
+  strcpy(errorReason, reason);
 }
 
 void ONSequence() {
@@ -181,7 +206,7 @@ bool checkBattery(unsigned long now) {
 }
 
 bool readThrottle(unsigned long now) {
-  uint16_t throttle1Value = lastButtonState ? center : analogRead(THROTTLE1);
+  unsigned long throttle1Value = lastButtonState ? center : analogRead(THROTTLE1);
   int scaledValue = throttle1Value > center ? map(throttle1Value, center, calMax, 127, 254) : map(throttle1Value, calMin, center, 0, 126); 
   scaledValue = constrain(scaledValue, 0, 254);
   encodedThrottle1Value = inverted ? 254 - (byte)scaledValue : (byte)scaledValue;
@@ -192,19 +217,63 @@ ISR (PCINT2_vect) {
   txDone = digitalRead(DIO1);
 }  
 
+bool receiveTMPacket() {
+  clearError();
+  int RXIdentity = -1;
+  int receivedValue = 0;
+  int measuredRXPacketLength = LT.receiveSXBuffer(0, 100, WAIT_RX);
+  if(measuredRXPacketLength == TMPacketLength){
+    LT.startReadSXBuffer(0);                
+    RXIdentity = LT.readUint8();         
+    receivedValue = LT.readUint8();       
+    measuredRXPacketLength = LT.endReadSXBuffer(); 
+    if(TXIdentity != RXIdentity) {
+      char reason[50];
+      sprintf(reason, "Incorrect identity %3d", TXIdentity);
+      setError(reason);
+    } else {
+      currentRSSI = LT.readPacketRSSI();      
+      currentSNR = LT.readPacketSNR(); 
+      boardVoltage = map(receivedValue, 0, 254, 0, 50400)/1000.0;
+    }
+  } else {
+    char reason[50];
+    sprintf(reason, "Incorrect packet length %3d", measuredRXPacketLength);
+    setError(reason);
+  }
+  
+  if(!error) {
+    TMPackets++;
+  }    
+}
+
 bool sendThrottlePacket(unsigned long now)
 {
   if(!txDone && !firstRound) {
     return false;
   }
+  if(requestTM) {
+    receiveTMPacket();
+    lastTMPacketReceived = now;
+    requestTM = 0;
+  }
+  
+  if(now - lastTMPacketReceived > TMPeriod) {
+    //requestTM = 1;
+  }
+  
   LT.startWriteSXBuffer(0);                     
   LT.writeUint8(TXIdentity);                     
-  LT.writeUint8(encodedThrottle1Value);                        
+  LT.writeUint8(encodedThrottle1Value);  
+  LT.writeUint8(requestTM);                      
   LT.endWriteSXBuffer();                         
 
-
   firstRound = false;
-  LT.transmitSXBuffer(0, PacketLength, 0, TXpower, NO_WAIT);    
+  int packetLength = LT.transmitSXBuffer(0, throttlePacketLength, 0, TXpower, NO_WAIT);    
+  if(packetLength > 0) {
+    packets++;
+  }
+
   return true;                  
 }
 
@@ -261,6 +330,13 @@ bool setMotor(unsigned long now) {
 
 bool printStats(unsigned long now) {
   #ifdef DEBUG
+  if(errors > 0) {
+    Serial.println("////////ERROR//////////");
+    Serial.print(">>>> ");
+    Serial.print(errorReason);
+    Serial.println(" <<<<");
+    Serial.println("//////////////////////");
+  }
   float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
   Serial.print("Ellapsed: ");
   Serial.print(ellapsed);
@@ -268,6 +344,13 @@ bool printStats(unsigned long now) {
   Serial.print(batteryVoltage);
   Serial.print("V | Mode: ");
   Serial.println(currentDisplayMode);
+  Serial.println();
+  Serial.println("SNR: ");
+  Serial.print(currentSNR);
+  Serial.print("dB | RSSI: ");
+  Serial.print(currentRSSI);
+  Serial.print("dBm | Board V: ");
+  Serial.println(boardVoltage);
   Serial.println("-------------- TASKS --------------");
   for(int i = 0; i < TASKS_LENGTH - 1; i++) {
     char prBuffer[45];
@@ -278,7 +361,17 @@ bool printStats(unsigned long now) {
     executions[i] = 0;
   }
   Serial.println("-----------------------------------");
-  Serial.println("");
+  int packetsPerSecond = round(packets / ellapsed);
+  Serial.print("Packets per second: ");
+  Serial.println(packetsPerSecond);
+  int TMPacketsPerSecond = round(TMPackets / ellapsed);
+  Serial.print("TM packets per second: ");
+  Serial.println(TMPacketsPerSecond);
+  Serial.print("Errors: ");
+  Serial.println(errors);
+  errors = 0;
+  packets = 0;
+  TMPackets = 0;
   #endif
   return true;
 }

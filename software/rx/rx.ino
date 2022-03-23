@@ -9,12 +9,12 @@ SX128XLT LT;
 #include <Servo.h>
 Servo PPM; 
 
-const int TASKS_LENGTH = 6;
+const int TASKS_LENGTH = 5;
 
-char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "setLEDs", "printStats" };
-unsigned long periods[] = { 5, 5, 1000, 1000, 10, 1000 };
-unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0, 0 };
+char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "setLEDs", "printStats" };
+unsigned long periods[] = { 10, 5, 1000, 10, 1000 };
+unsigned long lastRun[] = { 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0 };
 
 const int LEDS_LENGTH = 1;
 
@@ -26,7 +26,7 @@ int LEDResetCounters[] = { -1, -1, -1 };
 unsigned long lastLEDToggled[] = { 0, 0, 0 };
 
 float batteryVoltage = -1.0;
-int throttleValue = 127;
+unsigned int throttleValue = 127;
 
 volatile int rxDone = 1;
 bool firstRound = true;
@@ -34,13 +34,11 @@ bool firstRound = true;
 bool error = false;
 int errors = 0;
 char errorReason[50];
-volatile float currentRSSI = -100.0;
-volatile float currentSNR = -100.0;
-volatile int measuredRXPacketLength = 0;
-volatile int TXIdentity;
-volatile int receivedValue;
-volatile int IRQStatus;
+float currentRSSI = -100.0;
+float currentSNR = -100.0;
 
+unsigned long packets = 0;
+unsigned long TMPackets = 0;
 #define DEBUG
 
 void pciSetup(byte pin)
@@ -86,47 +84,60 @@ bool checkBattery(unsigned long now) {
 
 ISR (PCINT2_vect) {
   rxDone = digitalRead(DIO1);
-  if(rxDone) {
-    IRQStatus = LT.readIrqStatus();
-    if(IRQStatus == (IRQ_RX_DONE + IRQ_HEADER_VALID + IRQ_PREAMBLE_DETECTED)){
-      LT.startReadSXBuffer(0);                
-      TXIdentity = LT.readUint8();         
-      receivedValue = LT.readUint8();       
-      measuredRXPacketLength = LT.endReadSXBuffer(); 
-    }
-    currentRSSI = LT.readPacketRSSI();      
-    currentSNR = LT.readPacketSNR();
-  }
 } 
+
+void processReceivedPacket() {
+  clearError();
+  unsigned int TXIdentity = -1;
+  unsigned int receivedValue = 127;
+  unsigned int measuredRXPacketLength = LT.readRXPacketL();
+  unsigned int TMRequest = 0;
+  
+  if(measuredRXPacketLength == throttlePacketLength){
+    LT.startReadSXBuffer(0);                
+    TXIdentity = LT.readUint8();         
+    receivedValue = LT.readUint8();       
+    TMRequest = LT.readUint8();
+    LT.endReadSXBuffer(); 
+    currentRSSI = LT.readPacketRSSI();      
+    currentSNR = LT.readPacketSNR(); 
+       
+    if(TXIdentity != RXIdentity) {
+      char reason[50];
+      sprintf(reason, "Incorrect identity %3d", TXIdentity);
+      setError(reason);
+    }
+  } else {
+    char reason[50];
+    sprintf(reason, "Incorrect packet length %3d", measuredRXPacketLength);
+    setError(reason);
+  }
+  
+  if(!error) {
+    packets++;
+    throttleValue = receivedValue;
+  }
+
+  if(TMRequest) {
+    sendTMPacket();
+  }
+}
+
+bool sendTMPacket() {
+  unsigned int encodedBatteryVoltage = map(round(batteryVoltage*1000), 0, 50400, 0, 254);
+  LT.startWriteSXBuffer(0);                     
+  LT.writeUint8(RXIdentity);                    
+  LT.writeUint8(encodedBatteryVoltage);                        
+  LT.endWriteSXBuffer();                    
+  LT.transmitSXBuffer(0, TMPacketLength, 100, TXpower, WAIT_TX);     
+  TMPackets++;
+}
 
 bool receiveThrottlePacket(unsigned long now) {
   if(!rxDone && !firstRound) {
     return false;
   }
-
-  if(IRQStatus == (IRQ_RX_DONE + IRQ_HEADER_VALID + IRQ_PREAMBLE_DETECTED)) {
-    clearError();
-  } else {
-    setError("Bad packet");
-  }
-   
-  if(TXIdentity != RXIdentity) {
-    char reason[50];
-    sprintf(reason, "Incorrect identity %3d", TXIdentity);
-    setError(reason);
-  }
-
-  if(measuredRXPacketLength != PacketLength) {
-    char reason[50];
-    sprintf(reason, "Incorrect packet length %3d", measuredRXPacketLength);
-    setError(reason);
-  }
-      
-  if (IRQStatus & IRQ_RX_TIMEOUT) {
-      setError("RX timeout");
-  } 
-  
-  throttleValue = error ? 127 : receivedValue;
+  processReceivedPacket();
   
   firstRound = false;
   LT.receiveSXBuffer(0, 0, NO_WAIT);
@@ -136,10 +147,6 @@ bool receiveThrottlePacket(unsigned long now) {
 bool writePPMValue(unsigned long now) {
   int throttlePulse = map(throttleValue, 0, 254, 1000, 2000);
   PPM.writeMicroseconds(throttlePulse);
-  return true;
-}
-
-bool sendTMPacket(unsigned long now) {
   return true;
 }
 
@@ -199,15 +206,24 @@ bool printStats(unsigned long now) {
     executions[i] = 0;
   }
   Serial.println("-----------------------------------");
-  Serial.println("");
+  int packetsPerSecond = round(packets / ellapsed);
+  Serial.print("Packets per second: ");
+  Serial.println(packetsPerSecond);
+  int TMPacketsPerSecond = round(TMPackets / ellapsed);
+  Serial.print("TM packets per second: ");
+  Serial.println(TMPacketsPerSecond);
+  Serial.print("Errors: ");
+  Serial.println(errors);
   errors = 0;
+  packets = 0;
+  TMPackets = 0;
   #endif
   return true;
 }
 
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { receiveThrottlePacket, writePPMValue, sendTMPacket, checkBattery, setLEDs, printStats };
+task tasks[] = { receiveThrottlePacket, writePPMValue, checkBattery, setLEDs, printStats };
 
 void loop()
 {

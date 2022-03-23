@@ -28,10 +28,12 @@ const unsigned long R1 = 100000;
 #define LORA_DEVICE DEVICE_SX1280    
 #define Frequency 2445000000                     //frequency of transmissions
 #define Offset 0                                 //offset frequency for calibration purposes  
-#define Bandwidth LORA_BW_0400                   //LoRa bandwidth
+#define Bandwidth LORA_BW_0800                   //LoRa bandwidth
 #define SpreadingFactor LORA_SF7                 //LoRa spreading factor
 #define CodeRate LORA_CR_4_5                     //LoRa coding rate
 
    
-const uint32_t RXIdentity = 123; 
-const uint8_t PacketLength = 2;                  //packet length is fixed 
+const unsigned int RXIdentity = 123; 
+const unsigned int throttlePacketLength = 3;                  //packet length is fixed 
+const unsigned int TMPacketLength = 2;
+const unsigned int TXpower = 10;                       //LoRa transmit power in dBm
