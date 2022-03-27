@@ -9,12 +9,12 @@ SX128XLT LT;
 #include <Servo.h>
 Servo PPM; 
 
-const int TASKS_LENGTH = 5;
+const int TASKS_LENGTH = 6;
 
-char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "setLEDs", "printStats" };
-unsigned long periods[] = { 10, 5, 1000, 10, 1000 };
-unsigned long lastRun[] = { 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0 };
+char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "setLEDs", "printStats" };
+unsigned long periods[] = { 10, 20, 20, 1000, 100, 2000 };
+unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0, 0 };
 
 const int LEDS_LENGTH = 1;
 
@@ -25,21 +25,57 @@ unsigned long LEDPeriods[] = { -1, -1, -1 };
 int LEDResetCounters[] = { -1, -1, -1 };
 unsigned long lastLEDToggled[] = { 0, 0, 0 };
 
-float batteryVoltage = -1.0;
-unsigned int throttleValue = 127;
+unsigned int batteryVoltage = 0;
+unsigned int throttleValue = 32768;
 
-volatile int rxDone = 1;
-bool firstRound = true;
+volatile int RFAvailable = 1;
+bool forceRX = true;
 
 bool error = false;
 int errors = 0;
 char errorReason[50];
-float currentRSSI = -100.0;
-float currentSNR = -100.0;
+long currentRSSI = -100;
+int currentSNR = -100;
 
 unsigned long packets = 0;
 unsigned long TMPackets = 0;
+unsigned int TMRequest = 0;
+bool waitingForRX = false;
+unsigned int maxWaitForReceive = 150;
+unsigned int currentReceiveCycles = 0;
+
+int VCC = 0;
+
 #define DEBUG
+//#define DEBUG_FLAGS
+
+void printFlags(char title[]) {
+  Serial.print(title);
+  Serial.print(" | RFAvailable: ");
+  Serial.print(RFAvailable);
+  Serial.print(" | TMRequest: ");
+  Serial.println(TMRequest);
+}
+
+int readVcc(void) {
+   int result;
+   ADCSRA = (1<<ADEN);  //enable and
+   ADCSRA |= (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2);  // set prescaler to 128
+  // set the reference to Vcc and the measurement to the internal 1.1V reference
+   ADMUX = (1<<REFS0) | (1<<MUX3) | (1<<MUX2) | (1<<MUX1);
+   delay(1); // Wait for ADC and Vref to settle
+   ADCSRA |= (1<<ADSC); // Start conversion
+   while (bit_is_set(ADCSRA,ADSC)); // wait until done
+   result = ADC;
+   // second time is a charm
+   ADCSRA |= (1<<ADSC); // Start conversion
+   while (bit_is_set(ADCSRA,ADSC)); // wait until done
+   result = ADC;
+   // must be individually calibrated for EACH BOARD
+  result = 1148566UL / (unsigned long)result; //1126400 = 1.1*1024*1000
+  return result; // Vcc in millivolts
+}
+
 
 void pciSetup(byte pin)
 {
@@ -56,6 +92,19 @@ void setError(char reason[]) {
   errors++;
   error = true;
   strcpy(errorReason, reason);
+}
+
+void ONSequence() {
+    for(int i = LEDS_LENGTH-1; i > -1; i--) {
+      digitalWrite(LEDPins[i], HIGH);
+      delay(100);
+    }
+    delay(100);
+    for(int i = 0; i < LEDS_LENGTH; i++) {
+      digitalWrite(LEDPins[i], LOW);
+      delay(50);
+    }
+    VCC = readVcc();
 }
 
 void setLEDOn(int LEDn) {
@@ -76,31 +125,32 @@ void flashLED(int LEDn, int times, unsigned long period, int resetStatus) {
 
 bool checkBattery(unsigned long now) {
   int batValue = analogRead(VBAT);
-  int scaledBatmVolts = map(batValue, 0, 1023, 0, 3300);
-  
-  batteryVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
+  int scaledBatmVolts = map(batValue, 0, 1023, 0, VCC);
+  batteryVoltage = scaledBatmVolts*(R1+R2)/R2;
   return true;
 }
 
 ISR (PCINT2_vect) {
-  rxDone = digitalRead(DIO1);
+  RFAvailable = digitalRead(DIO1);
 } 
 
 void processReceivedPacket() {
   clearError();
   unsigned int TXIdentity = -1;
-  unsigned int receivedValue = 127;
+  unsigned int receivedValue = 32767;
+  unsigned int receivedTMRequest = 0;
   unsigned int measuredRXPacketLength = LT.readRXPacketL();
-  unsigned int TMRequest = 0;
+  int measuredSNR = 0;
+  long measuredRSSI = 0;
   
   if(measuredRXPacketLength == throttlePacketLength){
     LT.startReadSXBuffer(0);                
     TXIdentity = LT.readUint8();         
-    receivedValue = LT.readUint8();       
-    TMRequest = LT.readUint8();
+    receivedValue = LT.readUint16();       
+    receivedTMRequest = LT.readUint8();
     LT.endReadSXBuffer(); 
-    currentRSSI = LT.readPacketRSSI();      
-    currentSNR = LT.readPacketSNR(); 
+    measuredRSSI = LT.readPacketRSSI();      
+    measuredSNR = LT.readPacketSNR(); 
        
     if(TXIdentity != RXIdentity) {
       char reason[50];
@@ -115,37 +165,68 @@ void processReceivedPacket() {
   
   if(!error) {
     packets++;
+    currentSNR = measuredSNR;
+    currentRSSI = measuredRSSI;
     throttleValue = receivedValue;
-  }
-
-  if(TMRequest) {
-    sendTMPacket();
+    TMRequest = receivedTMRequest;
   }
 }
 
-bool sendTMPacket() {
-  unsigned int encodedBatteryVoltage = map(round(batteryVoltage*1000), 0, 50400, 0, 254);
-  LT.startWriteSXBuffer(0);                     
-  LT.writeUint8(RXIdentity);                    
-  LT.writeUint8(encodedBatteryVoltage);                        
-  LT.endWriteSXBuffer();                    
-  LT.transmitSXBuffer(0, TMPacketLength, 100, TXpower, WAIT_TX);     
-  TMPackets++;
-}
-
-bool receiveThrottlePacket(unsigned long now) {
-  if(!rxDone && !firstRound) {
+bool sendTMPacket(unsigned long now) {
+  if(!TMRequest || !RFAvailable) {
     return false;
   }
-  processReceivedPacket();
-  
-  firstRound = false;
-  LT.receiveSXBuffer(0, 0, NO_WAIT);
+  LT.startWriteSXBuffer(0);                     
+  LT.writeUint8(RXIdentity);                    
+  LT.writeUint16(batteryVoltage);                        
+  LT.endWriteSXBuffer();   
+  #ifdef DEBUG_FLAGS                 
+  printFlags("Transmit");
+  #endif
+  LT.transmitSXBuffer(0, TMPacketLength, 0, TXpower, NO_WAIT);  
+  TMPackets++;
+  TMRequest = 0;
   return true;
 }
 
+bool receiveThrottlePacket(unsigned long now) {
+  if(TMRequest) {
+    currentReceiveCycles = 0;
+    return false;
+  }
+  if(currentReceiveCycles >= maxWaitForReceive) {
+    currentReceiveCycles = 0;
+    waitingForRX = false;
+    currentSNR = -100;
+    currentRSSI = -100;
+    throttleValue = 32767;
+    setError("Receive timeout");
+    return false;
+  }
+  if(!RFAvailable && !forceRX) {
+    return false;
+  }
+  forceRX = false;
+  if(!waitingForRX) {
+    waitingForRX = true;
+    #ifdef DEBUG_FLAGS  
+    printFlags("Receive");
+    #endif
+    LT.receiveSXBuffer(0, 0, NO_WAIT);
+    return false;
+  } else {
+    #ifdef DEBUG_FLAGS   
+    printFlags("Process throttle");
+    #endif
+    processReceivedPacket(
+      );
+    waitingForRX = false;
+    return true;
+  }
+}
+
 bool writePPMValue(unsigned long now) {
-  int throttlePulse = map(throttleValue, 0, 254, 1000, 2000);
+  int throttlePulse = map(throttleValue, 0, 65535, 1000, 2000);
   PPM.writeMicroseconds(throttlePulse);
   return true;
 }
@@ -190,7 +271,7 @@ bool printStats(unsigned long now) {
   Serial.print("Ellapsed: ");
   Serial.print(ellapsed);
   Serial.print("s | VBat: ");
-  Serial.print(batteryVoltage);
+  Serial.print(batteryVoltage/1000.0);
   Serial.print("V | SNR: ");
   Serial.print(currentSNR);
   Serial.print("dB | RSSI: ");
@@ -223,7 +304,7 @@ bool printStats(unsigned long now) {
 
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { receiveThrottlePacket, writePPMValue, checkBattery, setLEDs, printStats };
+task tasks[] = { receiveThrottlePacket, writePPMValue, sendTMPacket, checkBattery, setLEDs, printStats };
 
 void loop()
 {
@@ -232,8 +313,8 @@ void loop()
     if(now - lastRun[i] >= periods[i]) {
       if(tasks[i](now)) {
         executions[i]++;
-        lastRun[i] = millis();
       }
+      lastRun[i] = millis();
     }
   }
 }
@@ -245,10 +326,11 @@ void setup()
   pinMode(L2, OUTPUT);
   pinMode(L3, OUTPUT);
   pinMode(L4, OUTPUT);
+  ONSequence();
   pciSetup(DIO1);
 
   #ifdef DEBUG
-  Serial.begin(19200);
+  Serial.begin(115200);
   #endif
 
   SPI.begin();
