@@ -11,16 +11,12 @@ const int DIO3 = -1;                         //DIO3 on LoRa device, normally not
 const int RX_EN = -1;                        //pin for RX enable, used on some SX1280 devices, set to -1 if not used
 const int TX_EN = -1;                        //pin for TX enable, used on some SX1280 devices, set to -1 if not used
 
-const int ON = 10;
 const int BUTTON = A0;
 const int PPM_L1 = 2;
 const int L2 = 3;
 const int L3 = 4;
 const int L4 = 5;
-const int MOTOR = A4;
-const int VBAT = A1;
-const int THROTTLE1 = A2;      
-
+const int VBAT = A1;   
 
 const unsigned long R2 = 7100;
 const unsigned long R1 = 100000;
@@ -37,7 +33,7 @@ const unsigned long R1 = 100000;
 #define CodeRate LORA_CR_4_5                     //LoRa coding rate
 
    
-const unsigned int TXIdentity = 123; 
+const unsigned int RXIdentity = 123; 
 const unsigned int throttlePacketLength = 4;                  //packet length is fixed 
 const unsigned int TMPacketLength = 3;
 const unsigned int TXpower = 10;                       //LoRa transmit power in dBm
