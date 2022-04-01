@@ -16,7 +16,7 @@ unsigned long periods[] = { 10, 20, 20, 1000, 100, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0 };
 
-const int LEDS_LENGTH = 1;
+const int LEDS_LENGTH = 3;
 
 int LEDPins[] = { L2, L3, L4 };
 int LEDStatus[] = { LOW, LOW, LOW };
@@ -41,7 +41,7 @@ unsigned long packets = 0;
 unsigned long TMPackets = 0;
 unsigned int TMRequest = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForReceive = 150;
+unsigned int maxWaitForReceive = 100;
 unsigned int currentReceiveCycles = 0;
 
 int VCC = 0;
@@ -204,6 +204,7 @@ bool receiveThrottlePacket(unsigned long now) {
     return false;
   }
   if(!RFAvailable && !forceRX) {
+    currentReceiveCycles++;
     return false;
   }
   forceRX = false;
@@ -218,8 +219,7 @@ bool receiveThrottlePacket(unsigned long now) {
     #ifdef DEBUG_FLAGS   
     printFlags("Process throttle");
     #endif
-    processReceivedPacket(
-      );
+    processReceivedPacket();
     waitingForRX = false;
     return true;
   }
