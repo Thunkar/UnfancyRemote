@@ -1,10 +1,10 @@
 
 // Calibration
 
-const unsigned int calMax = 625;
-const unsigned int center = 517;
-const unsigned int calMin = 283;
-const bool inverted = false;
+const unsigned int calMax = 760;
+const unsigned int center = 510;
+const unsigned int calMin = 360;
+const bool inverted = true;
 
 // Battery levels
 

@@ -77,6 +77,7 @@ int VCC = 0;
 
 #define DEBUG
 //#define DEBUG_FLAGS
+//#define CALIBRATION
 
 void resetTM() {
   currentSNR = -100;
@@ -266,6 +267,9 @@ bool checkBattery(unsigned long now) {
 
 bool readThrottle(unsigned long now) {
   unsigned int throttle1Value = lastButtonState ? center : analogRead(THROTTLE1);
+  #ifdef CALIBRATION
+  Serial.println(throttle1Value);
+  #endif
   throttle1Value = constrain(throttle1Value, calMin, calMax);
   unsigned int scaledValue = throttle1Value > center ? map(throttle1Value, center, calMax, 32768, 65535) : map(throttle1Value, calMin, center, 0, 32767); 
   encodedThrottle1Value = inverted ? 65535 - scaledValue : scaledValue;
@@ -515,9 +519,7 @@ void setup()
   ONSequence();
   pciSetup(DIO1);
 
-  #ifdef DEBUG
   Serial.begin(115200);
-  #endif
 
   SPI.begin();
 
