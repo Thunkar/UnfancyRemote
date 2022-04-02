@@ -10,7 +10,7 @@ SX128XLT LT;
 const int TASKS_LENGTH = 9;
 
 char *taskNames[] = { "readThrottle", "sendThrottlePacket", "receiveTMPacket", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats" };
-unsigned long periods[] = { 8, 20, 10, 100, 1000, 50, 10, 10, 2000 };
+unsigned long periods[] = { 10, 20, 5, 100, 1000, 50, 10, 10, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -68,7 +68,7 @@ unsigned long lastTMPacketReceived = 0;
 
 unsigned int requestTM = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForTM = 15;
+unsigned int maxWaitForTM = 30;
 unsigned int currentTMCycles = 0;
 int resetTMCounter = 0;
 
@@ -108,8 +108,8 @@ int readVcc(void) {
    while (bit_is_set(ADCSRA,ADSC)); // wait until done
    result = ADC;
    // must be individually calibrated for EACH BOARD
-  result = 1148566UL / (unsigned long)result; //1126400 = 1.1*1024*1000
-  return result; // Vcc in millivolts
+   result = 1148566UL / (unsigned long)result; //1126400 = 1.1*1024*1000
+   return result; // Vcc in millivolts
 }
 
 void pciSetup(byte pin)
@@ -322,7 +322,7 @@ bool receiveTMPacket(unsigned long now) {
     currentTMCycles = 0;
     return false;
   }
-  if(currentTMCycles >= maxWaitForTM) {
+  if(currentTMCycles >= maxWaitForTM/periods[2]) {
     currentTMCycles = 0;
     requestTM = 0; 
     resetTMCounter++;

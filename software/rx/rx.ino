@@ -12,7 +12,7 @@ Servo PPM;
 const int TASKS_LENGTH = 6;
 
 char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "setLEDs", "printStats" };
-unsigned long periods[] = { 10, 20, 20, 1000, 100, 2000 };
+unsigned long periods[] = { 5, 20, 5, 1000, 100, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0 };
 
@@ -41,7 +41,7 @@ unsigned long packets = 0;
 unsigned long TMPackets = 0;
 unsigned int TMRequest = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForReceive = 100;
+unsigned int maxWaitForReceive = 250;
 unsigned int currentReceiveCycles = 0;
 
 int VCC = 0;
@@ -72,8 +72,8 @@ int readVcc(void) {
    while (bit_is_set(ADCSRA,ADSC)); // wait until done
    result = ADC;
    // must be individually calibrated for EACH BOARD
-  result = 1148566UL / (unsigned long)result; //1126400 = 1.1*1024*1000
-  return result; // Vcc in millivolts
+   result = 1148566UL / (unsigned long)result; //1126400 = 1.1*1024*1000
+   return result; // Vcc in millivolts
 }
 
 
@@ -194,7 +194,7 @@ bool receiveThrottlePacket(unsigned long now) {
     currentReceiveCycles = 0;
     return false;
   }
-  if(currentReceiveCycles >= maxWaitForReceive) {
+  if(currentReceiveCycles >= maxWaitForReceive/periods[0]) { // Excluding tm receives, we have been waiting for more than 40ms for a throttle packet
     currentReceiveCycles = 0;
     waitingForRX = false;
     currentSNR = -100;
@@ -220,6 +220,7 @@ bool receiveThrottlePacket(unsigned long now) {
     printFlags("Process throttle");
     #endif
     processReceivedPacket();
+    currentReceiveCycles = 0;
     waitingForRX = false;
     return true;
   }

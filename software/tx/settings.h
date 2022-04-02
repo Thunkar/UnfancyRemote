@@ -2,7 +2,7 @@
 // Calibration
 
 const unsigned int calMax = 760;
-const unsigned int center = 510;
+const unsigned int center = 494;
 const unsigned int calMin = 360;
 const bool inverted = true;
 
