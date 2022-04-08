@@ -75,7 +75,7 @@ int resetTMCounter = 0;
 volatile long interruptCounter = 0;
 int VCC = 0;
 
-#define DEBUG
+//#define DEBUG
 //#define DEBUG_FLAGS
 //#define CALIBRATION
 
