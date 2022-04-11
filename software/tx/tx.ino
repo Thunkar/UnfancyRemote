@@ -1,6 +1,8 @@
 
+#include <Arduino.h>
 #include <SPI.h>
 #include <SX128XLT.h>
+#include <EEPROM.h>
 #include "board.h"
 #include "settings.h"
 #include <ProgramLT_Definitions.h>
@@ -75,7 +77,15 @@ int resetTMCounter = 0;
 volatile long interruptCounter = 0;
 int VCC = 0;
 
-//#define DEBUG
+unsigned int calMin;
+unsigned int calMax;
+unsigned int center;
+unsigned int inverted;
+
+bool forceCalibration = false;
+int forceCalibrationDelay = 5000;
+
+#define DEBUG
 //#define DEBUG_FLAGS
 //#define CALIBRATION
 
@@ -129,6 +139,31 @@ void setError(char reason[]) {
   strcpy(errorReason, reason);
 }
 
+void writeUInt(int address, unsigned int number)
+{ 
+  EEPROM.write(address, number >> 8);
+  EEPROM.write(address + 1, number & 0xFF);
+}
+
+unsigned int readUInt(int address)
+{
+  return (EEPROM.read(address) << 8) + EEPROM.read(address + 1);
+}
+
+void readSettings() {
+  center = readUInt(0);
+  calMax = readUInt(2);
+  calMin = readUInt(4);
+  inverted = readUInt(6);
+}
+
+void writeSettings() {
+  writeUInt(0, center);
+  writeUInt(2, calMax);
+  writeUInt(4, calMin);
+  writeUInt(6, inverted);
+}
+
 void ONSequence() {
     for(int i = LEDS_LENGTH-1; i > -1; i--) {
       digitalWrite(LEDPins[i], HIGH);
@@ -138,13 +173,71 @@ void ONSequence() {
     delay(100);
     digitalWrite(MOTOR, HIGH);
     delay(100);
-    while(digitalRead(BUTTON)){};
+    unsigned long now = millis();
+    unsigned long lastCheck = now;
+    while(digitalRead(BUTTON)){
+      forceCalibration = (lastCheck - now) > forceCalibrationDelay;
+      if(forceCalibration) {
+        digitalWrite(MOTOR, LOW);
+      }
+      lastCheck = millis();
+    };
     digitalWrite(MOTOR, LOW);
     for(int i = 0; i < LEDS_LENGTH; i++) {
       digitalWrite(LEDPins[i], LOW);
       delay(50);
     }
-    VCC = readVcc();
+}
+
+void calibrate() {
+  digitalWrite(L4, HIGH);
+  while(!digitalRead(BUTTON)) {
+    center = analogRead(THROTTLE1);
+    Serial.print("center: ");
+    Serial.println(center);
+  }
+  digitalWrite(MOTOR, HIGH);
+  delay(500);
+  digitalWrite(MOTOR, LOW);
+  digitalWrite(L3, HIGH);
+  int diff = 0;
+  while(!digitalRead(BUTTON)) {
+    unsigned int current = analogRead(THROTTLE1);
+    int newDiff = abs((int)center-(int)current);
+    if(newDiff > diff) {
+      calMax = current;
+      diff = newDiff;
+      Serial.print("calMax: ");
+      Serial.println(calMax);
+    }
+  }
+  digitalWrite(MOTOR, HIGH);
+  delay(500);
+  digitalWrite(MOTOR, LOW);
+  digitalWrite(L2, HIGH);
+  diff = 0;
+  while(!digitalRead(BUTTON)) {
+    int current = analogRead(THROTTLE1);
+    int newDiff = abs((int)center-(int)current);
+    if(newDiff > diff) {
+      calMin = current;
+      diff = newDiff;
+      Serial.print("calMin: ");
+      Serial.println(calMin);
+    }
+  }
+  inverted = calMax < calMin;
+  if(inverted) {
+    unsigned int swap = calMax;
+    calMax = calMin;
+    calMin = swap;
+  }
+  Serial.print("inverted: ");
+  Serial.println(inverted);
+  digitalWrite(PPM_L1, HIGH);
+  digitalWrite(MOTOR, HIGH);
+  delay(500);
+  digitalWrite(MOTOR, LOW);
 }
 
 void setLEDOn(int LEDn) {
@@ -267,12 +360,14 @@ bool checkBattery(unsigned long now) {
 
 bool readThrottle(unsigned long now) {
   unsigned int throttle1Value = lastButtonState ? center : analogRead(THROTTLE1);
-  #ifdef CALIBRATION
-  Serial.println(throttle1Value);
-  #endif
   throttle1Value = constrain(throttle1Value, calMin, calMax);
   unsigned int scaledValue = throttle1Value > center ? map(throttle1Value, center, calMax, 32768, 65535) : map(throttle1Value, calMin, center, 0, 32767); 
   encodedThrottle1Value = inverted ? 65535 - scaledValue : scaledValue;
+  #ifdef CALIBRATION
+  Serial.print(throttle1Value);
+  Serial.print(" | ");
+  Serial.println(encodedThrottle1Value);
+  #endif
   return true;
 }
 
@@ -461,6 +556,14 @@ bool printStats(unsigned long now) {
   Serial.print(" (");
   Serial.print(boardCellVoltage);
   Serial.println(")");
+  Serial.print("Calibration: ");
+  Serial.print(calMin);
+  Serial.print(" | ");
+  Serial.print(center);
+  Serial.print(" | ");
+  Serial.print(calMax);
+  Serial.print(" | Inverted: ");
+  Serial.println(inverted ? "yes" : "no");
   Serial.println("-------------- TASKS --------------");
   for(int i = 0; i < TASKS_LENGTH - 1; i++) {
     char prBuffer[45];
@@ -517,9 +620,15 @@ void setup()
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
   ONSequence();
+  VCC = readVcc();
   pciSetup(DIO1);
 
   Serial.begin(115200);
+  readSettings();
+  if((center == calMax && center == calMin) || forceCalibration) {
+    calibrate();
+    writeSettings();
+  }
 
   SPI.begin();
 

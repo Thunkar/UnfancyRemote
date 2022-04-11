@@ -1,0 +1,7 @@
+{
+    "configuration": "cpu=8MHzatmega328",
+    "board": "arduino:avr:pro",
+    "port": "COM4",
+    "sketch": "software\\tx\\tx.ino",
+    "programmer": "arduino:arduinoasisp"
+}
