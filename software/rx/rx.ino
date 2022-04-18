@@ -33,7 +33,7 @@ bool forceRX = true;
 
 bool error = false;
 int errors = 0;
-char errorReason[50];
+char errorReason[20];
 long currentRSSI = -100;
 int currentSNR = -100;
 
@@ -262,23 +262,23 @@ bool setLEDs(unsigned long now) {
 bool printStats(unsigned long now) {
   #ifdef DEBUG
   if(errors > 0) {
-    Serial.println("////////ERROR//////////");
-    Serial.print(">>>> ");
+    Serial.println(F("////////ERROR//////////"));
+    Serial.print(F(">>>> "));
     Serial.print(errorReason);
-    Serial.println(" <<<<");
-    Serial.println("//////////////////////");
+    Serial.println(F(" <<<<"));
+    Serial.println(F("//////////////////////"));
   }
   float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
-  Serial.print("Ellapsed: ");
+  Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
-  Serial.print("s | VBat: ");
+  Serial.print(F("s | VBat: "));
   Serial.print(batteryVoltage/1000.0);
-  Serial.print("V | SNR: ");
+  Serial.print(F("V | SNR: "));
   Serial.print(currentSNR);
-  Serial.print("dB | RSSI: ");
+  Serial.print(F("dB | RSSI: "));
   Serial.print(currentRSSI);
-  Serial.println("dBm");
-  Serial.println("-------------- TASKS --------------");
+  Serial.println(F("dBm"));
+  Serial.println(F("-------------- TASKS --------------"));
   for(int i = 0; i < TASKS_LENGTH - 1; i++) {
     char prBuffer[45];
     int frequency = round(executions[i] / ellapsed);
@@ -289,12 +289,12 @@ bool printStats(unsigned long now) {
   }
   Serial.println("-----------------------------------");
   int packetsPerSecond = round(packets / ellapsed);
-  Serial.print("Packets per second: ");
+  Serial.print(F("Packets per second: "));
   Serial.println(packetsPerSecond);
   int TMPacketsPerSecond = round(TMPackets / ellapsed);
-  Serial.print("TM packets per second: ");
+  Serial.print(F("TM packets per second: "));
   Serial.println(TMPacketsPerSecond);
-  Serial.print("Errors: ");
+  Serial.print(F("Errors: "));
   Serial.println(errors);
   errors = 0;
   packets = 0;
@@ -354,6 +354,6 @@ void setup()
   PPM.attach(PPM_L1);
 
   #ifdef DEBUG
-  Serial.println("Receiver ready");
+  Serial.println(F("Receiver ready"));
   #endif
 }
