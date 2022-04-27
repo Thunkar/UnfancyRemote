@@ -20,6 +20,7 @@ const int L4 = 5;
 const int MOTOR = A4;
 const int VBAT = A1;
 const int THROTTLE1 = A2;      
+const int THROTTLE2 = A3;
 
 
 const unsigned long R2 = 7100;

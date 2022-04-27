@@ -16,7 +16,9 @@ unsigned long periods[] = { 10, 20, 5, 100, 1000, 50, 10, 10, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-unsigned int encodedThrottle1Value;
+unsigned int encodedThrottleValue;
+const unsigned int ENCODED_MAX = 65535;
+const unsigned int ENCODED_HALF = 32768;
 
 const int LEDS_LENGTH = 4;
 
@@ -77,9 +79,10 @@ int resetTMCounter = 0;
 volatile long interruptCounter = 0;
 int VCC = 0;
 
-unsigned int calMin;
-unsigned int calMax;
-unsigned int center;
+unsigned int calBrake;
+unsigned int calAcc;
+unsigned int centerAcc;
+unsigned int centerBrake;
 unsigned int inverted;
 
 bool forceCalibration = false;
@@ -151,17 +154,19 @@ unsigned int readUInt(int address)
 }
 
 void readSettings() {
-  center = readUInt(0);
-  calMax = readUInt(2);
-  calMin = readUInt(4);
+  centerAcc = readUInt(0);
+  calAcc = readUInt(2);
+  calBrake = readUInt(4);
   inverted = readUInt(6);
+  centerBrake = readUInt(8);
 }
 
 void writeSettings() {
-  writeUInt(0, center);
-  writeUInt(2, calMax);
-  writeUInt(4, calMin);
+  writeUInt(0, centerAcc);
+  writeUInt(2, calAcc);
+  writeUInt(4, calBrake);
   writeUInt(6, inverted);
+  writeUInt(8, centerBrake);
 }
 
 void ONSequence() {
@@ -192,9 +197,16 @@ void ONSequence() {
 void calibrate() {
   digitalWrite(L4, HIGH);
   while(!digitalRead(BUTTON)) {
-    center = analogRead(THROTTLE1);
-    Serial.print("center: ");
-    Serial.println(center);
+    centerAcc = analogRead(THROTTLE1);
+    Serial.print("centerAcc: ");
+    Serial.print(centerAcc);
+    #ifdef DUAL_THROTTLE
+    centerBrake = analogRead(THROTTLE2);
+    Serial.print("| centerBrake: ");
+    Serial.println(centerBrake);
+    #else
+    Serial.println();
+    #endif
   }
   digitalWrite(MOTOR, HIGH);
   delay(500);
@@ -203,12 +215,12 @@ void calibrate() {
   int diff = 0;
   while(!digitalRead(BUTTON)) {
     unsigned int current = analogRead(THROTTLE1);
-    int newDiff = abs((int)center-(int)current);
+    int newDiff = abs((int)centerAcc-(int)current);
     if(newDiff > diff) {
-      calMax = current;
+      calAcc = current;
       diff = newDiff;
-      Serial.print("calMax: ");
-      Serial.println(calMax);
+      Serial.print("calAcc: ");
+      Serial.println(calAcc);
     }
   }
   digitalWrite(MOTOR, HIGH);
@@ -217,21 +229,21 @@ void calibrate() {
   digitalWrite(L2, HIGH);
   diff = 0;
   while(!digitalRead(BUTTON)) {
+    #ifdef DUAL_THROTTLE
+    int current = analogRead(THROTTLE2);
+    int newDiff = abs((int)centerBrake-(int)current);
+    #else
     int current = analogRead(THROTTLE1);
-    int newDiff = abs((int)center-(int)current);
+    int newDiff = abs((int)centerAcc-(int)current);
+    #endif
     if(newDiff > diff) {
-      calMin = current;
+      calBrake = current;
       diff = newDiff;
-      Serial.print("calMin: ");
-      Serial.println(calMin);
+      Serial.print("calBrake: ");
+      Serial.println(calBrake);
     }
   }
-  inverted = calMax < calMin;
-  if(inverted) {
-    unsigned int swap = calMax;
-    calMax = calMin;
-    calMin = swap;
-  }
+  inverted = calAcc < calBrake;
   Serial.print("inverted: ");
   Serial.println(inverted);
   digitalWrite(PPM_L1, HIGH);
@@ -359,14 +371,45 @@ bool checkBattery(unsigned long now) {
 }
 
 bool readThrottle(unsigned long now) {
-  unsigned int throttle1Value = lastButtonState ? center : analogRead(THROTTLE1);
-  throttle1Value = constrain(throttle1Value, calMin, calMax);
-  unsigned int scaledValue = throttle1Value > center ? map(throttle1Value, center, calMax, 32768, 65535) : map(throttle1Value, calMin, center, 0, 32767); 
-  encodedThrottle1Value = inverted ? 65535 - scaledValue : scaledValue;
+  if(lastButtonState) {
+    encodedThrottleValue = 32768;
+    return true;
+  }
+  #ifdef DUAL_THROTTLE
+  unsigned int throttle1Value = analogRead(THROTTLE1);
+  unsigned int throttle2Value = analogRead(THROTTLE2);
+  throttle1Value = constrain(throttle1Value, min(centerAcc, calAcc), max(centerAcc, calAcc));
+  throttle2Value = constrain(throttle2Value, min(centerBrake, calBrake), max(centerBrake, calBrake));
+
+  bool isBraking = abs((int)throttle2Value-(int)centerBrake) > BRAKE_SENSITIVITY;
+  
+  if(isBraking) {
+     encodedThrottleValue = throttle2Value > centerBrake ? 
+                                      ENCODED_HALF - map(throttle2Value, centerBrake, calBrake, 0, ENCODED_HALF):
+                                      map(throttle2Value, calBrake, centerBrake, 0, ENCODED_HALF); 
+  } else {
+    encodedThrottleValue = throttle1Value > centerAcc ? 
+                                      map(throttle1Value, centerAcc, calAcc, ENCODED_HALF, ENCODED_MAX):
+                                      ENCODED_HALF - map(throttle1Value, calAcc, centerAcc, ENCODED_HALF+1, ENCODED_MAX); 
+  }
+  #else
+  unsigned int throttle1Value = analogRead(THROTTLE1);
+  throttle1Value = constrain(throttle1Value, min(calBrake, calAcc), max(calBrake, calAcc));
+  unsigned int scaledValue = throttle1Value > centerAcc ? 
+                                map(throttle1Value, centerAcc, max(calBrake, calAcc), ENCODED_HALF, ENCODED_MAX) : 
+                                map(throttle1Value, min(calBrake, calAcc), centerAcc, 0, ENCODED_HALF); 
+  encodedThrottleValue = inverted ? ENCODED_MAX - scaledValue : scaledValue;
+  #endif
   #ifdef CALIBRATION
   Serial.print(throttle1Value);
   Serial.print(" | ");
-  Serial.println(encodedThrottle1Value);
+  #ifdef DUAL_THROTTLE
+  Serial.print(throttle2Value);
+  Serial.print(" | ");
+  Serial.print(isBraking);
+  Serial.print(" ");
+  #endif
+  Serial.println(encodedThrottleValue);
   #endif
   return true;
 }
@@ -467,7 +510,7 @@ bool sendThrottlePacket(unsigned long now)
   
   LT.startWriteSXBuffer(0);                     
   LT.writeUint8(TXIdentity);                     
-  LT.writeUint16(encodedThrottle1Value);  
+  LT.writeUint16(encodedThrottleValue);  
   LT.writeUint8(requestTM);                      
   LT.endWriteSXBuffer();         
   forceTX = false;
@@ -557,11 +600,11 @@ bool printStats(unsigned long now) {
   Serial.print(boardCellVoltage);
   Serial.println(")");
   Serial.print("Calibration: ");
-  Serial.print(calMin);
+  Serial.print(calBrake);
   Serial.print(" | ");
-  Serial.print(center);
+  Serial.print(centerAcc);
   Serial.print(" | ");
-  Serial.print(calMax);
+  Serial.print(calAcc);
   Serial.print(" | Inverted: ");
   Serial.println(inverted ? "yes" : "no");
   Serial.println("-------------- TASKS --------------");
@@ -625,7 +668,7 @@ void setup()
 
   Serial.begin(115200);
   readSettings();
-  if((center == calMax && center == calMin) || forceCalibration) {
+  if((centerAcc == calAcc && centerAcc == calBrake) || forceCalibration) {
     calibrate();
     writeSettings();
   }
