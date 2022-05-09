@@ -349,7 +349,7 @@ void setup()
     #endif
   }
 
-  LT.setupLoRa(Frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
   
   PPM.attach(PPM_L1);
 

@@ -1,6 +1,6 @@
 // Battery levels
 
-#define DUAL_THROTTLE
+//#define DUAL_THROTTLE
 
 #ifdef DUAL_THROTTLE
 const float BRAKE_SENSITIVITY = 5;

@@ -688,8 +688,7 @@ void setup()
     #endif
   }
 
-  LT.setupLoRa(Frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-  
+  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
   #ifdef DEBUG
   Serial.println(F("Remote ready"));
   #endif
