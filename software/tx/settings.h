@@ -1,3 +1,8 @@
+// Pairing
+
+const unsigned int channel = 40;
+const unsigned int TXIdentity = 2; 
+
 // Battery levels
 
 //#define DUAL_THROTTLE

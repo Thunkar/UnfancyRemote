@@ -51,9 +51,9 @@ int VCC = 0;
 
 void printFlags(char title[]) {
   Serial.print(title);
-  Serial.print(" | RFAvailable: ");
+  Serial.print(F(" | RFAvailable: "));
   Serial.print(RFAvailable);
-  Serial.print(" | TMRequest: ");
+  Serial.print(F(" | TMRequest: "));
   Serial.println(TMRequest);
 }
 
@@ -263,9 +263,7 @@ bool printStats(unsigned long now) {
   #ifdef DEBUG
   if(errors > 0) {
     Serial.println(F("////////ERROR//////////"));
-    Serial.print(F(">>>> "));
     Serial.print(errorReason);
-    Serial.println(F(" <<<<"));
     Serial.println(F("//////////////////////"));
   }
   float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
@@ -287,7 +285,7 @@ bool printStats(unsigned long now) {
     Serial.println("");
     executions[i] = 0;
   }
-  Serial.println("-----------------------------------");
+  Serial.println(F("-----------------------------------"));
   int packetsPerSecond = round(packets / ellapsed);
   Serial.print(F("Packets per second: "));
   Serial.println(packetsPerSecond);
@@ -336,20 +334,14 @@ void setup()
 
   SPI.begin();
 
-  if (LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
-  {
-    #ifdef DEBUG
-    Serial.println(F("LoRa ready"));
-    #endif
-  }
-  else
+  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
   {
     #ifdef DEBUG
     Serial.println(F("Device error"));
     #endif
   }
 
-  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setupLoRa(channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY, Offset, SpreadingFactor, Bandwidth, CodeRate);
   
   PPM.attach(PPM_L1);
 

@@ -58,7 +58,7 @@ bool forceTX = true;
 
 bool error = false;
 int errors = 0;
-char errorReason[50];
+char errorReason[20];
 long currentRSSI = -100;
 int currentSNR = -100;
 
@@ -76,7 +76,6 @@ unsigned int maxWaitForTM = 30;
 unsigned int currentTMCycles = 0;
 int resetTMCounter = 0;
 
-volatile long interruptCounter = 0;
 int VCC = 0;
 
 unsigned int calBrake;
@@ -100,9 +99,9 @@ void resetTM() {
 
 void printFlags(char title[]) {
   Serial.print(title);
-  Serial.print(" | RFAvailable: ");
+  Serial.print(F(" | RFAvailable: "));
   Serial.print(RFAvailable);
-  Serial.print(" | RequestTM: ");
+  Serial.print(F(" | RequestTM: "));
   Serial.println(requestTM);
 }
 
@@ -198,12 +197,8 @@ void calibrate() {
   digitalWrite(L4, HIGH);
   while(!digitalRead(BUTTON)) {
     centerAcc = analogRead(THROTTLE1);
-    Serial.print("centerAcc: ");
-    Serial.print(centerAcc);
     #ifdef DUAL_THROTTLE
     centerBrake = analogRead(THROTTLE2);
-    Serial.print("| centerBrake: ");
-    Serial.println(centerBrake);
     #else
     Serial.println();
     #endif
@@ -219,8 +214,6 @@ void calibrate() {
     if(newDiff > diff) {
       calAcc = current;
       diff = newDiff;
-      Serial.print("calAcc: ");
-      Serial.println(calAcc);
     }
   }
   digitalWrite(MOTOR, HIGH);
@@ -239,13 +232,9 @@ void calibrate() {
     if(newDiff > diff) {
       calBrake = current;
       diff = newDiff;
-      Serial.print("calBrake: ");
-      Serial.println(calBrake);
     }
   }
   inverted = calAcc < calBrake;
-  Serial.print("inverted: ");
-  Serial.println(inverted);
   digitalWrite(PPM_L1, HIGH);
   digitalWrite(MOTOR, HIGH);
   delay(500);
@@ -402,12 +391,12 @@ bool readThrottle(unsigned long now) {
   #endif
   #ifdef CALIBRATION
   Serial.print(throttle1Value);
-  Serial.print(" | ");
+  Serial.print(F(" | "));
   #ifdef DUAL_THROTTLE
   Serial.print(throttle2Value);
-  Serial.print(" | ");
+  Serial.print(F(" | "));
   Serial.print(isBraking);
-  Serial.print(" ");
+  Serial.print(F(" "));
   #endif
   Serial.println(encodedThrottleValue);
   #endif
@@ -416,7 +405,6 @@ bool readThrottle(unsigned long now) {
 
 ISR (PCINT2_vect) {
   RFAvailable = digitalRead(DIO1);
-  interruptCounter++;
 }  
 
 void processTMPacket() {
@@ -577,37 +565,35 @@ bool setMotor(unsigned long now) {
 bool printStats(unsigned long now) {
   #ifdef DEBUG
   if(errors > 0) {
-    Serial.println("////////ERROR//////////");
-    Serial.print(">>>> ");
+    Serial.println(F("////////ERROR//////////"));
     Serial.print(errorReason);
-    Serial.println(" <<<<");
-    Serial.println("//////////////////////");
+    Serial.println(F("//////////////////////"));
   }
   float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
-  Serial.print("Ellapsed: ");
+  Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
-  Serial.print("s | VBat: ");
+  Serial.print(F("s | VBat: "));
   Serial.print(batteryVoltage);
-  Serial.print("V | Mode: ");
+  Serial.print(F("V | Mode: "));
   Serial.println(currentDisplayMode);
-  Serial.print("SNR: ");
+  Serial.print(F("SNR: "));
   Serial.print(currentSNR);
-  Serial.print("dB | RSSI: ");
+  Serial.print(F("dB | RSSI: "));
   Serial.print(currentRSSI);
-  Serial.print("dBm | Board V: ");
+  Serial.print(F("dBm | Board V: "));
   Serial.print(boardVoltage);
-  Serial.print(" (");
+  Serial.print(F(" ("));
   Serial.print(boardCellVoltage);
-  Serial.println(")");
-  Serial.print("Calibration: ");
+  Serial.println(F(")"));
+  Serial.print(F("Calibration: "));
   Serial.print(calBrake);
-  Serial.print(" | ");
+  Serial.print(F(" | "));
   Serial.print(centerAcc);
-  Serial.print(" | ");
+  Serial.print(F(" | "));
   Serial.print(calAcc);
-  Serial.print(" | Inverted: ");
+  Serial.print(F(" | Inverted: "));
   Serial.println(inverted ? "yes" : "no");
-  Serial.println("-------------- TASKS --------------");
+  Serial.println(F("-------------- TASKS --------------"));
   for(int i = 0; i < TASKS_LENGTH - 1; i++) {
     char prBuffer[45];
     int frequency = round(executions[i] / ellapsed);
@@ -616,19 +602,15 @@ bool printStats(unsigned long now) {
     Serial.println("");
     executions[i] = 0;
   }
-  Serial.println("-----------------------------------");
+  Serial.println(F("-----------------------------------"));
   int packetsPerSecond = round(packets / ellapsed);
-  Serial.print("Packets per second: ");
+  Serial.print(F("Packets per second: "));
   Serial.println(packetsPerSecond);
   int TMPacketsPerSecond = round(TMPackets / ellapsed);
-  Serial.print("TM packets per second: ");
+  Serial.print(F("TM packets per second: "));
   Serial.println(TMPacketsPerSecond);
-  Serial.print("Errors: ");
+  Serial.print(F("Errors: "));
   Serial.println(errors);
-  Serial.print("Interrupts per second: ");
-  int interruptsPerSecond = round(interruptCounter / ellapsed);
-  Serial.println(interruptsPerSecond);
-  interruptCounter = 0;
   errors = 0; 
   packets = 0;
   TMPackets = 0;
@@ -675,20 +657,14 @@ void setup()
 
   SPI.begin();
 
-  if (LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
-  {
-    #ifdef DEBUG
-    Serial.println(F("LoRa ready"));
-    #endif
-  }
-  else
+  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
   {
     #ifdef DEBUG
     Serial.println(F("Device error"));
     #endif
   }
 
-  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setupLoRa(channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY, Offset, SpreadingFactor, Bandwidth, CodeRate);
   #ifdef DEBUG
   Serial.println(F("Remote ready"));
   #endif

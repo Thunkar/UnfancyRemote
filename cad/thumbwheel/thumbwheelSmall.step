@@ -9,9 +9,8 @@ FILE_DESCRIPTION(
 /* implementation_level */ '2;1');
 
 FILE_NAME(
-/* name */ 'C:/Repos/UnfancyRemote/cad/thumbwheel/thumbwheelSmall.step',
-
-/* time_stamp */ '2022-04-29T09:32:18+02:00',
+/* name */ 'C:/Repos/UnfancyRemote/cad/round/thumbwheelSmall.step',
+/* time_stamp */ '2022-05-10T16:38:10+02:00',
 /* author */ (''),
 /* organization */ (''),
 /* preprocessor_version */ 'ST-DEVELOPER v18.1',

@@ -1,6 +1,4 @@
-
 //*******  Setup hardware pin definitions here ! ***************
-
 
 const int NSS = 7;                           //select on LoRa device
 const int NRESET = 8;                        //reset on LoRa device
@@ -33,10 +31,6 @@ const unsigned long R1 = 100000;
 #define CH_BANDWIDTH_HZ 2500000
 #define BASE_FREQUENCY 2400000000
 
-const unsigned int channel = 40;
-const unsigned int RXIdentity = 2; 
-
-const unsigned long frequency = channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 const unsigned int throttlePacketLength = 4;                  //packet length is fixed 
 const unsigned int TMPacketLength = 3;
 const unsigned int TXpower = 10;                       //LoRa transmit power in dBm
