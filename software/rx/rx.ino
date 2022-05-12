@@ -25,15 +25,17 @@ unsigned long LEDPeriods[] = { -1, -1, -1 };
 int LEDResetCounters[] = { -1, -1, -1 };
 unsigned long lastLEDToggled[] = { 0, 0, 0 };
 
+const unsigned int ENCODED_MAX = 65535;
+const unsigned int ENCODED_HALF = 32768;
 unsigned int batteryVoltage = 0;
-unsigned int throttleValue = 32768;
+unsigned int throttleValue = ENCODED_HALF;
 
 volatile int RFAvailable = 1;
 bool forceRX = true;
 
 bool error = false;
 int errors = 0;
-char errorReason[20];
+char errorReason[30];
 long currentRSSI = -100;
 int currentSNR = -100;
 
@@ -72,7 +74,7 @@ int readVcc(void) {
    while (bit_is_set(ADCSRA,ADSC)); // wait until done
    result = ADC;
    // must be individually calibrated for EACH BOARD
-   result = 1148566UL / (unsigned long)result; //1126400 = 1.1*1024*1000
+   result = VREF / (unsigned long)result; //1126400 = 1.1*1024*1000
    return result; // Vcc in millivolts
 }
 
@@ -137,7 +139,7 @@ ISR (PCINT2_vect) {
 void processReceivedPacket() {
   clearError();
   unsigned int TXIdentity = -1;
-  unsigned int receivedValue = 32767;
+  unsigned int receivedValue = ENCODED_HALF;
   unsigned int receivedTMRequest = 0;
   unsigned int measuredRXPacketLength = LT.readRXPacketL();
   int measuredSNR = 0;
@@ -158,7 +160,7 @@ void processReceivedPacket() {
       setError(reason);
     }
   } else {
-    char reason[50];
+    char reason[30];
     sprintf(reason, "Incorrect packet length %3d", measuredRXPacketLength);
     setError(reason);
   }
@@ -199,7 +201,7 @@ bool receiveThrottlePacket(unsigned long now) {
     waitingForRX = false;
     currentSNR = -100;
     currentRSSI = -100;
-    throttleValue = 32767;
+    throttleValue = ENCODED_HALF;
     setError("Receive timeout");
     return false;
   }
@@ -227,7 +229,7 @@ bool receiveThrottlePacket(unsigned long now) {
 }
 
 bool writePPMValue(unsigned long now) {
-  int throttlePulse = map(throttleValue, 0, 65535, 1000, 2000);
+  unsigned int throttlePulse = map(throttleValue, 0, ENCODED_MAX, 1000, 2000);
   PPM.writeMicroseconds(throttlePulse);
   return true;
 }

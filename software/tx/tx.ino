@@ -58,7 +58,7 @@ bool forceTX = true;
 
 bool error = false;
 int errors = 0;
-char errorReason[20];
+char errorReason[30];
 long currentRSSI = -100;
 int currentSNR = -100;
 
@@ -120,7 +120,7 @@ int readVcc(void) {
    while (bit_is_set(ADCSRA,ADSC)); // wait until done
    result = ADC;
    // must be individually calibrated for EACH BOARD
-   result = 1148566UL / (unsigned long)result; //1126400 = 1.1*1024*1000
+   result = VREF / (unsigned long)result; //1126400 = 1.1*1024*1000
    return result; // Vcc in millivolts
 }
 
