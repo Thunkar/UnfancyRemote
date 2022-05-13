@@ -1,6 +1,6 @@
 // Pairing 
 
-const unsigned int channel = 40;
+const unsigned int channel = 35;
 const unsigned int RXIdentity = 2; 
 
 // Battery levels

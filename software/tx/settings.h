@@ -6,7 +6,7 @@ const float BRAKE_SENSITIVITY = 5;
 
 // Pairing
 
-const unsigned int channel = 40;
+const unsigned int channel = 35;
 const unsigned int TXIdentity = 2; 
 
 // Battery levels

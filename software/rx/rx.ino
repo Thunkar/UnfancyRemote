@@ -38,6 +38,7 @@ int errors = 0;
 char errorReason[30];
 long currentRSSI = -100;
 int currentSNR = -100;
+unsigned long frequency;
 
 unsigned long packets = 0;
 unsigned long TMPackets = 0;
@@ -265,9 +266,12 @@ bool printStats(unsigned long now) {
   #ifdef DEBUG
   if(errors > 0) {
     Serial.println(F("////////ERROR//////////"));
-    Serial.print(errorReason);
+    Serial.println(errorReason);
     Serial.println(F("//////////////////////"));
   }
+  Serial.print(F("Frequency: "));
+  Serial.print(frequency);
+  Serial.println(F("Hz"));
   float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
@@ -343,7 +347,8 @@ void setup()
     #endif
   }
 
-  LT.setupLoRa(channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  frequency = channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
+  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
   
   PPM.attach(PPM_L1);
 
