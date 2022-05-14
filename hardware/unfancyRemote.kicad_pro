@@ -383,7 +383,7 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "unfancyRemote.step",
+      "step": "../cad/misc/PCBv2.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
