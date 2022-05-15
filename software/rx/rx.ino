@@ -79,7 +79,6 @@ int readVcc(void) {
    return result; // Vcc in millivolts
 }
 
-
 void pciSetup(byte pin)
 {
     *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
@@ -156,7 +155,7 @@ void processReceivedPacket() {
     measuredSNR = LT.readPacketSNR(); 
        
     if(TXIdentity != RXIdentity) {
-      char reason[50];
+      char reason[30];
       sprintf(reason, "Incorrect identity %3d", TXIdentity);
       setError(reason);
     }
@@ -197,13 +196,16 @@ bool receiveThrottlePacket(unsigned long now) {
     currentReceiveCycles = 0;
     return false;
   }
-  if(currentReceiveCycles >= maxWaitForReceive/periods[0]) { // Excluding tm receives, we have been waiting for more than 40ms for a throttle packet
+  if(currentReceiveCycles >= maxWaitForReceive/periods[0]) { // Excluding tm receives, we have been waiting for more than 50ms for a throttle packet
     currentReceiveCycles = 0;
     waitingForRX = false;
+    forceRX = true;
+    TMRequest = 0;
     currentSNR = -100;
     currentRSSI = -100;
     throttleValue = ENCODED_HALF;
     setError("Receive timeout");
+    LT.setMode(MODE_STDBY_RC);  
     return false;
   }
   if(!RFAvailable && !forceRX) {
