@@ -1,5 +1,6 @@
 //*******  Setup hardware pin definitions here ! ***************
-
+//#define HW_V1
+#define HW_V2
 const int NSS = 7;                           //select on LoRa device
 const int NRESET = 8;                        //reset on LoRa device
 const int RFBUSY = 9;                        //RF busy on LoRa device 
@@ -20,8 +21,11 @@ const int VBAT = A1;
 const int THROTTLE1 = A2;      
 const int THROTTLE2 = A3;
 
-
+#ifdef HW_V1
 const unsigned long R2 = 7100;
+#else
+const unsigned long R2 = 6800;
+#endif
 const unsigned long R1 = 100000;
 
 
