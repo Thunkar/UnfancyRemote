@@ -19,7 +19,7 @@ It has been tested on the latest (at the time of writing, 1.8.19) Arduino IDE ve
 # Documentation
 
 1) [Ordering](./docs/ordering.md)
-2) [Assembly](./docs/assembly.md)
+2) [PCB Assembly](./docs/assembly.md)
 
 # Contributing
 

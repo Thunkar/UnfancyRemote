@@ -4,16 +4,23 @@
 
 Ordering from [JLCPCB](https://jlcpcb.com/) is very easy. First of all, make sure you have successfully downloaded or cloned this repository in your computer, and have unzipped the contents. The first step is to go to the website and click on 'Add gerber file':
 
-
+![Add gerber](images/add_gerber.png)
 
 Then navigate to `hardware/jlcpcb/gerber` and select `GERBER-unfancyRemote.zip`. These are the design files for the boards that tell the manufacturer exactly how to make them (copper, silkscreen, vias, holes, etc). Once they're loaded and analyzed, you should select the following manufacturing options, except color which you can choose (as long as JLCPB supports SMD assembly in that particular color). The price per remote goes way down if you order 20+ boards, and you need 2 per kit (1 transmitter and 1 receiver, the same PCB can act as both). Get some friends to join your purchase!
 
-Select "SMD assembly" and the following options. The PCB only has components on the top side, so manual soldering will be kept to a minimum:
+![PCB options](images/pcb_options.png)
 
+Select "PCB assembly" and the following options. The PCB only has components on the top side, so manual soldering will be kept to a minimum:
 
-On the next screen, upload the BOM (`hardware/jlcpcb/assembly/BOM-unfancyRemote.csv`) and CPL file (`hardware/jlcpcb/assembly/POS-unfancyRemote.csv`). Select `Research/Education/DIY/Entertainment -> Toy` as category and click next. The component list should appear, leaving only 3 unpopulated parts: Arduino digital, Arduino analog and Extra analog 1. This is fine, you'll solder this when assembling the remote. If there are more components missing, create a [PR]() so we can try and find an alternative.
+![PCB assembly](images/assembly_options.png)
+
+On the next screen, upload the BOM (`hardware/jlcpcb/assembly/BOM-unfancyRemote.csv`) and CPL file (`hardware/jlcpcb/assembly/POS-unfancyRemote.csv`). Select `Research/Education/DIY/Entertainment -> Toy` as category and click next. The component list should appear, leaving only 3 unpopulated parts: Arduino digital, Arduino analog and Extra analog 1. This is fine, you'll solder this when assembling the remote. If there are more components missing, create a [PR](https://github.com/Thunkar/UnfancyRemote/pulls) so we can try and find an alternative.
+
+![Assembly parts](images/assembly_parts.png)
 
 Next you'll see a summary of your order. Pricing should be around $20 excluding shipping if you select only 5 PCBs, but I do insist that 20 will be less than $50 WITH shipping, so find some mates! In the unselected parts section only headers/connectors and the LoRa module should appear:
+
+![Unselected parts](./images/unselected_parts.png)
 
 
 You're done! Pay for your order and shipping, it should be with you in less than 15 days even with the cheapest option.
@@ -36,4 +43,4 @@ You're done! Pay for your order and shipping, it should be with you in less than
 | Vibration motor                        | Technically optional but highly recommended                                                           | 1                                  | [10 motors](https://es.aliexpress.com/item/4000245243914.html?spm=a2g0o.productlist.0.0.2bc24c7a06D7tZ&algo_pvid=d7ae2599-209d-4fd2-abdc-e8d7466ebdf6&algo_exp_id=d7ae2599-209d-4fd2-abdc-e8d7466ebdf6-0&pdp_ext_f=%7B%22sku_id%22%3A%2210000000993711802%22%7D&pdp_npi=2%40dis%21EUR%21%213.98%21%21%21%21%21%400b0a182b16521937527193035e1830%2110000000993711802%21sea)                                       | [5 motors](https://www.amazon.es/gp/product/B0839H19HY/ref=ppx_yo_dt_b_asin_title_o06_s00?ie=UTF8&psc=1)                     |
 | Lanyard                                | Any would do, really                                                                                  | 1                                  | [1 lanyard](https://es.aliexpress.com/item/1005001914422530.html?spm=a2g0o.order_list.0.0.5907194dTPcEXh&gatewayAdapt=glo2esp)                                                                                                                                                                                                                                                                                   | N/A                                                                                                                          |
 
-I'll try to keep this updated if I find better options. If you do, please open a [PR]()
+I'll try to keep this updated if I find better options. If you do, please open a [PR](https://github.com/Thunkar/UnfancyRemote/pulls)

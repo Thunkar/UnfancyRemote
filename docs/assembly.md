@@ -24,7 +24,9 @@ Make sure you have soldered the LoRa module first! While certainly possible to d
 
 The reset button on both Arduinos **MUST** be removed. Nobody wants their remote to reset due to a bump or squeezing too hard.
 
-## Completing the circuit
+![Reset button](./images/reset_button.jpg)
+
+## Completing the transmitter circuit
 
 All the other components should be soldered to the appropriate pads. The connections are shown in this diagram (dotted lines mean optional)
 
