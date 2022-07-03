@@ -1,33 +1,40 @@
 # Assembly
 
-## Soldering the LoRa module
+## 3D printing a case
 
-The first thing to do would be to solder the LoRa module in the appropriate spot. Using solder paste and a reflow station is recommended, but the footprint has slightly oversized pads so it can be done using a regular soldering iron. It should look like this:
+It is recommended to print the remote case in a plastic meant for mechanical parts and capable of resisting some level of impact:
 
-![Lora module](./images/lora_solder.jpeg)
+* PETG
+* ABS
+* Nylon
+* ASA
+
+I have personally tested PETG with great results, specially at 0.12mm layer height. 
+
+## Putting it all together
+
+The official cases have cutouts and walls designed to make sure every component is supported and doesn't move during operation. It is still recommended to secure them using double-sided sticky tape. As reference, a completely assembled round version is depicted below:
+
+![Assembled](images/assembled.jpg)
+
+## Moving parts
+
+Triggers and thumbwheels are mounted on press fit ball bearings. If your printer tolerances are way off, a little bit of PTFE tape can be used to ensure a snug fit. The spring will be a little too tight when first assembled and also he friction will probably make it not return to center easily and completely. It is recommended to lube the cut where the spring is secured to the thumbwheel/trigger to ensure consistent centering, but a little bit of use will probably take care of it anyways.
+
+## Sensor and magnets
+
+For the thumbwheel versions make sure the magnets are configured facing opposite poles as follows: 
+
+![Magnets](images/magnets.jpg)
+
+It is ***NOT*** important which is the actual north or south pole of each magnet, ***JUST*** that they face opposite directions. The easiest way to accomplish this is to insert one of them and then make sure that it tries to *repel* the other one if you place it on the ouside of the wheel next to the already inserted one. 
+
+Dual trigger version doesn't care about magnet orientation as they're two separate sensors that only use the unidirectional throw.
 
 ## **IMPORTANT**
 
-Some LoRa modules come with the external antenna selected, instead of the integrated one in the PCB. This WILL cause problems, increased sensitivity to interferences and dropouts. It is very important to make sure the resistor that selects the PCB antenna is in the correct position and move it otherwise:
+Both the magnets and sensor should be glued in place once the setup is verified and working. Superglue or epoxy recommended.
 
-![Antenna selection](./images/antenna_selection.png)
+## Inserts
 
-## Soldering the Arduino
-
-Make sure you have soldered the LoRa module first! While certainly possible to do the other way around, it is a lot easier to do it in this order. Using some pin headers (that should be included in the Arduino package), solder the Arduino to the PCB, making sure the orientation is correct (programming pins next to the top of the board where the throttle pads are) and A4/A5 pins are also soldered using a 2x1 pin header. These are only needed for the transmitter, but they don't hurt anyways. The transmitter *requires* a board equipped with the more powerful Atmega 328p processor, but the receiver can use the cheaper Atmega 168.
-
-![Arduino](./images/arduino_solder.jpeg)
-
-![Rx and Tx](./images/soldered.jpeg)
-
-## **IMPORTANT** 
-
-The reset button on both Arduinos **MUST** be removed. Nobody wants their remote to reset due to a bump or squeezing too hard.
-
-![Reset button](./images/reset_button.jpg)
-
-## Completing the transmitter circuit
-
-All the other components should be soldered to the appropriate pads. The connections are shown in this diagram (dotted lines mean optional)
-
-![Diagram](./images/diagram.png)
+The official cases use brass inserts to ensure the remote is closed up properly. They should be heated using a lighter and placed in the provided anchor points.
