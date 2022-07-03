@@ -19,8 +19,8 @@ It has been tested on the latest (at the time of writing, 1.8.19) Arduino IDE ve
 # Documentation
 
 1) [Ordering](./docs/ordering.md)
-2) [Soldering](./docs/assembly.md)
-3) [Printing a case](./docs/printing.md)
+2) [Soldering](./docs/soldering.md)
+3) [Assembly](./docs/assembly.md)
 4) [Software configuration](./docs/software.md)
 5) [Remote operation](./docs/operation.md)
 
