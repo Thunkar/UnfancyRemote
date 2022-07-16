@@ -503,7 +503,7 @@ bool receiveTMPacket(unsigned long now) {
 
 bool sendThrottlePacket(unsigned long now)
 {
-  // We have been waiting for more than 60ms to send a throttle packet, so we stop everything and try again for protection.
+  // We have been waiting for more than 60ms to send a throttle packet, so we stop everything and try again for safety.
   if(currentTransmitCycles >= maxWaitForTransmit/periods[1]) { 
     currentTransmitCycles = 0;
     forceTX = true;
