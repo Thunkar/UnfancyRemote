@@ -31,6 +31,7 @@ unsigned int batteryVoltage = 0;
 unsigned int throttleValue = ENCODED_HALF;
 
 volatile int RFAvailable = 1;
+volatile int interruptCounter = 1;
 bool forceRX = true;
 
 bool error = false;
@@ -132,9 +133,18 @@ bool checkBattery(unsigned long now) {
   return true;
 }
 
+void processRFInterrupt() {
+  RFAvailable = !digitalRead(RFBUSY) && digitalRead(DIO1); // RFBusy should be checked by the library, but it does polling and not interrupts. This should avoid most Busy Timeout errors.
+  interruptCounter++;
+}
+
+ISR (PCINT0_vect) {
+  processRFInterrupt();
+}  
+
 ISR (PCINT2_vect) {
-  RFAvailable = digitalRead(DIO1);
-} 
+  processRFInterrupt();
+}  
 
 void processReceivedPacket() {
   clearError();
@@ -196,7 +206,8 @@ bool receiveThrottlePacket(unsigned long now) {
     currentReceiveCycles = 0;
     return false;
   }
-  if(currentReceiveCycles >= maxWaitForReceive/periods[0]) { // Excluding tm receives, we have been waiting for more than 50ms for a throttle packet
+  // Excluding tm receives, we have been waiting for more than 50ms for a throttle packet. Reset everything and try again!
+  if(currentReceiveCycles >= maxWaitForReceive/periods[0]) { 
     currentReceiveCycles = 0;
     waitingForRX = false;
     forceRX = true;
@@ -206,6 +217,7 @@ bool receiveThrottlePacket(unsigned long now) {
     throttleValue = ENCODED_HALF;
     setError("Receive timeout");
     LT.setMode(MODE_STDBY_RC);  
+    LT.config();
     return false;
   }
   if(!RFAvailable && !forceRX) {
@@ -295,10 +307,10 @@ bool printStats(unsigned long now) {
   }
   Serial.println(F("-----------------------------------"));
   int packetsPerSecond = round(packets / ellapsed);
-  Serial.print(F("Packets per second: "));
+  Serial.print(F("Packets/s: "));
   Serial.println(packetsPerSecond);
   int TMPacketsPerSecond = round(TMPackets / ellapsed);
-  Serial.print(F("TM packets per second: "));
+  Serial.print(F("TM packets/s: "));
   Serial.println(TMPacketsPerSecond);
   Serial.print(F("Errors: "));
   Serial.println(errors);
@@ -335,6 +347,7 @@ void setup()
   pinMode(L4, OUTPUT);
   ONSequence();
   pciSetup(DIO1);
+  pciSetup(RFBUSY);
 
   #ifdef DEBUG
   Serial.begin(115200);

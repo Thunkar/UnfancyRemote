@@ -53,7 +53,7 @@ bool canChangeMode = true;
 const int BATTERY_THRESHOLDS_LENGTH = 5;
 
 volatile int RFAvailable = 1;
-volatile int lastRFStatus = 0;
+volatile int interruptCounter = 1;
 bool forceTX = true;
 
 bool error = false;
@@ -73,8 +73,10 @@ unsigned long lastTMPacketReceived = 0;
 
 unsigned int requestTM = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForTM = 30;
+unsigned int maxWaitForTM = 50;
 unsigned int currentTMCycles = 0;
+unsigned int currentTransmitCycles = 0;
+unsigned int maxWaitForTransmit = 60;
 int resetTMCounter = 0;
 
 int VCC = 0;
@@ -96,6 +98,7 @@ void resetTM() {
   currentSNR = -100;
   currentRSSI = -100;
   boardVoltage = 0.0;
+  boardCellVoltage = 0.0;
 }
 
 void printFlags(char title[]) {
@@ -362,7 +365,7 @@ bool checkBattery(unsigned long now) {
 
 bool readThrottle(unsigned long now) {
   if(lastButtonState) {
-    encodedThrottleValue = 32768;
+    encodedThrottleValue = ENCODED_HALF;
     return true;
   }
   #ifdef DUAL_THROTTLE
@@ -404,8 +407,17 @@ bool readThrottle(unsigned long now) {
   return true;
 }
 
+void processRFInterrupt() {
+  RFAvailable = !digitalRead(RFBUSY) && digitalRead(DIO1); // RFBusy should be checked by the library, but it does polling and not interrupts. This should avoid most Busy Timeout errors.
+  interruptCounter++;
+}
+
+ISR (PCINT0_vect) {
+  processRFInterrupt();
+}  
+
 ISR (PCINT2_vect) {
-  RFAvailable = digitalRead(DIO1);
+  processRFInterrupt();
 }  
 
 void processTMPacket() {
@@ -449,11 +461,12 @@ bool receiveTMPacket(unsigned long now) {
     currentTMCycles = 0;
     return false;
   }
-  if(currentTMCycles >= maxWaitForTM/periods[2]) {
+  // We cannot wait for TM forever and stop sending throttle packages. This shortcuts the TM reception routine and gets on transmitting again
+  if(currentTMCycles >= maxWaitForTM/periods[2]) { 
     currentTMCycles = 0;
     requestTM = 0; 
     resetTMCounter++;
-    if(resetTMCounter >= 3) {
+    if(resetTMCounter >= 5) {
       resetTM();
     }
     waitingForRX = false;
@@ -461,6 +474,7 @@ bool receiveTMPacket(unsigned long now) {
     lastTMPacketReceived = now;
     setError("TM timeout");
     LT.setMode(MODE_STDBY_RC);  
+    LT.config();
     return false;
   }
   if(!RFAvailable) {
@@ -489,12 +503,24 @@ bool receiveTMPacket(unsigned long now) {
 
 bool sendThrottlePacket(unsigned long now)
 {
+  // We have been waiting for more than 60ms to send a throttle packet, so we stop everything and try again for protection.
+  if(currentTransmitCycles >= maxWaitForTransmit/periods[1]) { 
+    currentTransmitCycles = 0;
+    forceTX = true;
+    requestTM = 0;
+    setError("Transmit timeout");
+    LT.setMode(MODE_STDBY_RC);  
+    LT.config();
+    return false;
+  }
+
   if((requestTM || !RFAvailable) && !forceTX) {
+    currentTransmitCycles++;
     return false;
   }
 
   if(now - lastTMPacketReceived > TMPeriod) {
-      requestTM = 1;
+    requestTM = 1;
   }
   
   LT.startWriteSXBuffer(0);                     
@@ -506,6 +532,7 @@ bool sendThrottlePacket(unsigned long now)
   #ifdef DEBUG_FLAGS
   printFlags("Transmit");
   #endif
+  currentTransmitCycles = 0;
   LT.transmitSXBuffer(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
   packets++;
 
@@ -596,7 +623,7 @@ bool printStats(unsigned long now) {
   Serial.print(F(" | "));
   Serial.print(calAcc);
   Serial.print(F(" | Inverted: "));
-  Serial.println(inverted ? "yes" : "no");
+  Serial.println(inverted ? "y" : "n");
   Serial.println(F("-------------- TASKS --------------"));
   for(int i = 0; i < TASKS_LENGTH - 1; i++) {
     char prBuffer[45];
@@ -608,16 +635,20 @@ bool printStats(unsigned long now) {
   }
   Serial.println(F("-----------------------------------"));
   int packetsPerSecond = round(packets / ellapsed);
-  Serial.print(F("Packets per second: "));
+  Serial.print(F("Packets/s: "));
   Serial.println(packetsPerSecond);
   int TMPacketsPerSecond = round(TMPackets / ellapsed);
-  Serial.print(F("TM packets per second: "));
+  Serial.print(F("TM packets/s: "));
   Serial.println(TMPacketsPerSecond);
+  int interruptsPerSecond = round(interruptCounter / ellapsed);
+  Serial.print(F("Interrupts/s: "));
+  Serial.println(interruptsPerSecond);
   Serial.print(F("Errors: "));
   Serial.println(errors);
   errors = 0; 
   packets = 0;
   TMPackets = 0;
+  interruptCounter = 0;
   #endif
   return true;
 }
@@ -651,6 +682,7 @@ void setup()
   ONSequence();
   VCC = readVcc();
   pciSetup(DIO1);
+  pciSetup(RFBUSY);
 
   Serial.begin(115200);
   readSettings();
