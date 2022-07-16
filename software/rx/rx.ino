@@ -12,7 +12,7 @@ Servo PPM;
 const int TASKS_LENGTH = 6;
 
 char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "setLEDs", "printStats" };
-unsigned long periods[] = { 5, 20, 5, 1000, 100, 2000 };
+unsigned long periods[] = { 1, 20, 1, 1000, 100, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0 };
 

@@ -12,7 +12,7 @@ SX128XLT LT;
 const int TASKS_LENGTH = 9;
 
 char *taskNames[] = { "readThrottle", "sendThrottlePacket", "receiveTMPacket", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats" };
-unsigned long periods[] = { 10, 20, 5, 100, 1000, 50, 10, 10, 2000 };
+unsigned long periods[] = { 10, 20, 1, 100, 1000, 50, 10, 10, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -73,10 +73,10 @@ unsigned long lastTMPacketReceived = 0;
 
 unsigned int requestTM = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForTM = 50;
+unsigned int maxWaitForTM = 40;
 unsigned int currentTMCycles = 0;
 unsigned int currentTransmitCycles = 0;
-unsigned int maxWaitForTransmit = 60;
+unsigned int maxWaitForTransmit = 20;
 int resetTMCounter = 0;
 
 int VCC = 0;
@@ -145,14 +145,12 @@ void setError(char reason[]) {
   strcpy(errorReason, reason);
 }
 
-void writeUInt(int address, unsigned int number)
-{ 
+void writeUInt(int address, unsigned int number){ 
   EEPROM.write(address, number >> 8);
   EEPROM.write(address + 1, number & 0xFF);
 }
 
-unsigned int readUInt(int address)
-{
+unsigned int readUInt(int address) {
   return (EEPROM.read(address) << 8) + EEPROM.read(address + 1);
 }
 
@@ -503,6 +501,10 @@ bool receiveTMPacket(unsigned long now) {
 
 bool sendThrottlePacket(unsigned long now)
 {
+  if(requestTM) {
+    currentTransmitCycles = 0;
+    return false;
+  }
   // We have been waiting for more than 60ms to send a throttle packet, so we stop everything and try again for safety.
   if(currentTransmitCycles >= maxWaitForTransmit/periods[1]) { 
     currentTransmitCycles = 0;
@@ -514,7 +516,7 @@ bool sendThrottlePacket(unsigned long now)
     return false;
   }
 
-  if((requestTM || !RFAvailable) && !forceTX) {
+  if(!RFAvailable && !forceTX) {
     currentTransmitCycles++;
     return false;
   }
