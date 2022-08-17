@@ -11,12 +11,11 @@ FILE_DESCRIPTION(
 FILE_NAME(
 /* name */ 'C:/Repos/UnfancyRemote/cad/dualTrigger/reverseTrigger.step',
 
-/* time_stamp */ '2022-05-10T16:36:23+02:00',
+/* time_stamp */ '2022-08-17T09:11:18+02:00',
 /* author */ (''),
 /* organization */ (''),
-/* preprocessor_version */ 'ST-DEVELOPER v18.1',
-/* originating_system */ 'Autodesk Translation Framework v10.14.0.1471',
-
+/* preprocessor_version */ 'ST-DEVELOPER v19',
+/* originating_system */ 'Autodesk Translation Framework v11.7.0.108',
 /* authorisation */ '');
 
 FILE_SCHEMA (('AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }'));
