@@ -290,7 +290,7 @@ bool displayMode(unsigned long now) {
         }
       }
       if(boardCellVoltage <= BOARD_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1] && boardCellVoltage > 0) {
-        pulseMotor(-1, 200);
+        pulseMotor(-1, 500);
         flashLED(3, -1, 200, 0);
       } else {
         pulseMotor(-1, -1);
@@ -306,7 +306,7 @@ bool displayMode(unsigned long now) {
         }
       }
       if(batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1] && batteryVoltage > 0) {
-          pulseMotor(-1, 200);
+          pulseMotor(-1, 100);
       } else {
           pulseMotor(-1, -1);
       }
@@ -358,6 +358,9 @@ bool checkBattery(unsigned long now) {
   int scaledBatmVolts = map(batValue, 0, 1023, 0, VCC);
   
   batteryVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
+  if(currentDisplayMode != 1 && batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1]) {
+    changeMode(1);
+  }
   return true;
 }
 
