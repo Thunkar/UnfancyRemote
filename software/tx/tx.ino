@@ -357,7 +357,8 @@ bool checkBattery(unsigned long now) {
   int batValue = analogRead(VBAT);
   int scaledBatmVolts = map(batValue, 0, 1023, 0, VCC);
   
-  batteryVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
+  float newBatteryVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
+  batteryVoltage = batteryVoltage != -1 ? (newBatteryVoltage + batteryVoltage) / 2 : newBatteryVoltage;
   if(currentDisplayMode != 1 && batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1]) {
     changeMode(1);
   }
