@@ -3,27 +3,28 @@
 #include "board.h"
 #include "settings.h"
 #include <ProgramLT_Definitions.h>
+#include <Arduino.h>
+#include <Deneyap_Servo.h>      // Deneyap Servo kütüphanesi eklenmesi
+
+Servo PPM;
 
 SX128XLT LT;
-
-#include <Servo.h>
-Servo PPM; 
 
 const int TASKS_LENGTH = 6;
 
 char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "setLEDs", "printStats" };
-unsigned long periods[] = { 1, 20, 1, 1000, 100, 2000 };
-unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0, 0 };
+long periods[] = { 1, 20, 1, 1000, 100, 2000 };
+long lastRun[] = { 0, 0, 0, 0, 0, 0 };
+long executions[] = { 0, 0, 0, 0, 0, 0 };
 
 const int LEDS_LENGTH = 3;
 
 int LEDPins[] = { L2, L3, L4 };
 int LEDStatus[] = { LOW, LOW, LOW };
 int storedLEDStatus[] = { LOW, LOW, LOW };
-unsigned long LEDPeriods[] = { -1, -1, -1 };
+long LEDPeriods[] = { -1, -1, -1 };
 int LEDResetCounters[] = { -1, -1, -1 };
-unsigned long lastLEDToggled[] = { 0, 0, 0 };
+long lastLEDToggled[] = { 0, 0, 0 };
 
 const unsigned int ENCODED_MAX = 65535;
 const unsigned int ENCODED_HALF = 32768;
@@ -62,29 +63,8 @@ void printFlags(char title[]) {
 }
 
 int readVcc(void) {
-   int result;
-   ADCSRA = (1<<ADEN);  //enable and
-   ADCSRA |= (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2);  // set prescaler to 128
-  // set the reference to Vcc and the measurement to the internal 1.1V reference
-   ADMUX = (1<<REFS0) | (1<<MUX3) | (1<<MUX2) | (1<<MUX1);
-   delay(1); // Wait for ADC and Vref to settle
-   ADCSRA |= (1<<ADSC); // Start conversion
-   while (bit_is_set(ADCSRA,ADSC)); // wait until done
-   result = ADC;
-   // second time is a charm
-   ADCSRA |= (1<<ADSC); // Start conversion
-   while (bit_is_set(ADCSRA,ADSC)); // wait until done
-   result = ADC;
-   // must be individually calibrated for EACH BOARD
-   result = VREF / (unsigned long)result; //1126400 = 1.1*1024*1000
+   int result = 0;
    return result; // Vcc in millivolts
-}
-
-void pciSetup(byte pin)
-{
-    *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
-    PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
-    PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
 }
 
 void clearError() {
@@ -134,18 +114,10 @@ bool checkBattery(unsigned long now) {
   return true;
 }
 
-void processRFInterrupt() {
+void IRAM_ATTR processRFInterrupt() {
   RFAvailable = !digitalRead(RFBUSY) && digitalRead(DIO1); // RFBusy should be checked by the library, but it does polling and not interrupts. This should avoid most Busy Timeout errors.
   interruptCounter++;
 }
-
-ISR (PCINT0_vect) {
-  processRFInterrupt();
-}  
-
-ISR (PCINT2_vect) {
-  processRFInterrupt();
-}  
 
 void processReceivedPacket() {
   clearError();
@@ -347,8 +319,9 @@ void setup()
   pinMode(L3, OUTPUT);
   pinMode(L4, OUTPUT);
   ONSequence();
-  pciSetup(DIO1);
-  pciSetup(RFBUSY);
+  attachInterrupt(DIO1, processRFInterrupt, CHANGE);
+  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
+  PPM.attach(PPM_L1);
 
   #ifdef DEBUG
   Serial.begin(115200);
@@ -366,8 +339,6 @@ void setup()
   frequency = channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
   LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
   
-  PPM.attach(PPM_L1);
-
   #ifdef DEBUG
   Serial.println(F("Receiver ready"));
   #endif

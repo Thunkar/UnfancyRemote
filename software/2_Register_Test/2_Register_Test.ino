@@ -73,7 +73,7 @@ const uint8_t PACKET_TYPE_LORA = 0x01;
 #define NSS 7                                  //SX128X device select
 #define NRESET 8                                //SX128X reset pin
 #define RFBUSY 9                                //SX128X busy pin 
-#define LED1 8                                  //for on board LED, put high for on
+#define LED1 10                                  //for on board LED, put high for on
   
 //**************************************************************/
 
