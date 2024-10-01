@@ -2,9 +2,9 @@
 //#define HW_V1
 #define HW_V2
 const int NSS = 7;                           //select on LoRa device
-const int NRESET = 8;                        //reset on LoRa device
-const int RFBUSY = 9;                        //RF busy on LoRa device 
-const int DIO1 = 10;                          //DIO1 on LoRa device, used for RX and TX done
+const int NRESET = 9;                        //reset on LoRa device
+const int RFBUSY = 10;                        //RF busy on LoRa device 
+const int DIO1 = -1;                          //DIO1 on LoRa device, used for RX and TX done
 const int DIO2 = -1;                         //DIO2 on LoRa device, normally not used so set to -1
 const int DIO3 = -1;                         //DIO3 on LoRa device, normally not used so set to -1
 const int RX_EN = -1;                        //pin for RX enable, used on some SX1280 devices, set to -1 if not used

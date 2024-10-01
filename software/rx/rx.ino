@@ -4,7 +4,7 @@
 #include "settings.h"
 #include <ProgramLT_Definitions.h>
 #include <Arduino.h>
-#include <Deneyap_Servo.h>      // Deneyap Servo kütüphanesi eklenmesi
+#include <ESP32Servo.h> 
 
 Servo PPM;
 
@@ -56,6 +56,8 @@ int VCC = 0;
 
 void printFlags(char title[]) {
   Serial.print(title);
+  Serial.print(F(" | ThrottleValue: "));
+  Serial.print(throttleValue);
   Serial.print(F(" | RFAvailable: "));
   Serial.print(RFAvailable);
   Serial.print(F(" | TMRequest: "));
@@ -115,12 +117,16 @@ bool checkBattery(unsigned long now) {
 }
 
 void IRAM_ATTR processRFInterrupt() {
-  RFAvailable = !digitalRead(RFBUSY) && digitalRead(DIO1); // RFBusy should be checked by the library, but it does polling and not interrupts. This should avoid most Busy Timeout errors.
+  RFAvailable = !digitalRead(RFBUSY);
   interruptCounter++;
 }
 
 void processReceivedPacket() {
   clearError();
+  if(!checkRXIRQError()) {
+    setError("IRQ Error");
+    return;
+  }                                               
   unsigned int TXIdentity = -1;
   unsigned int receivedValue = ENCODED_HALF;
   unsigned int receivedTMRequest = 0;
@@ -157,8 +163,19 @@ void processReceivedPacket() {
   }
 }
 
+bool checkTXRXDone() {
+  uint16_t IRQStatus = LT.readIrqStatus();
+  bool done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+  return done;
+}
+
+bool checkRXIRQError() {
+  uint16_t IRQStatus = LT.readIrqStatus();
+  return !(IRQStatus & (IRQ_HEADER_ERROR + IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
+}
+
 bool sendTMPacket(unsigned long now) {
-  if(!TMRequest || !RFAvailable) {
+  if(!TMRequest || !RFAvailable || !checkTXRXDone()) {
     return false;
   }
   LT.startWriteSXBuffer(0);                     
@@ -168,7 +185,7 @@ bool sendTMPacket(unsigned long now) {
   #ifdef DEBUG_FLAGS                 
   printFlags("Transmit");
   #endif
-  LT.transmitSXBuffer(0, TMPacketLength, 0, TXpower, NO_WAIT);  
+  LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
   TMPackets++;
   TMRequest = 0;
   return true;
@@ -189,11 +206,10 @@ bool receiveThrottlePacket(unsigned long now) {
     currentRSSI = -100;
     throttleValue = ENCODED_HALF;
     setError("Receive timeout");
-    LT.setMode(MODE_STDBY_RC);  
     LT.config();
     return false;
   }
-  if(!RFAvailable && !forceRX) {
+  if((!checkTXRXDone() || !RFAvailable) && !forceRX) {
     currentReceiveCycles++;
     return false;
   }
@@ -203,7 +219,7 @@ bool receiveThrottlePacket(unsigned long now) {
     #ifdef DEBUG_FLAGS  
     printFlags("Receive");
     #endif
-    LT.receiveSXBuffer(0, 0, NO_WAIT);
+    LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
     return false;
   } else {
     #ifdef DEBUG_FLAGS   
@@ -319,7 +335,6 @@ void setup()
   pinMode(L3, OUTPUT);
   pinMode(L4, OUTPUT);
   ONSequence();
-  attachInterrupt(DIO1, processRFInterrupt, CHANGE);
   attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
   PPM.attach(PPM_L1);
 
@@ -329,7 +344,7 @@ void setup()
 
   SPI.begin();
 
-  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
+  if (!LT.begin(NSS, NRESET, RFBUSY, LORA_DEVICE))
   {
     #ifdef DEBUG
     Serial.println(F("Device error"));
@@ -338,6 +353,7 @@ void setup()
 
   frequency = channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
   LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.clearIrqStatus(IRQ_RADIO_ALL);
   
   #ifdef DEBUG
   Serial.println(F("Receiver ready"));
