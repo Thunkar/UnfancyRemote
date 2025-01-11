@@ -71,7 +71,7 @@ const uint8_t PACKET_TYPE_LORA = 0x01;
 //SCK pin 13, MISO pin 12, and MOSI pin 11.
 
 #define NSS 7                                  //SX128X device select
-#define NRESET 8                                //SX128X reset pin
+#define NRESET 9                                //SX128X reset pin
 #define RFBUSY 10                                //SX128X busy pin 
 #define LED1 11                                  //for on board LED, put high for on
   

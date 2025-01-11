@@ -8,8 +8,8 @@ const float BRAKE_SENSITIVITY = 5;
 
 // Pairing: Choose a channel (0-40) and a transmitter identity (0-254) to prevent collisions with nearby remotes or other LoRa devices
 
-const unsigned int channel = 35;
-const unsigned int TXIdentity = 35; 
+const unsigned int channel = 15;
+const unsigned int TXIdentity = 224; 
 
 // Battery levels: VREF is the actual internal reference of the Arduino, that can differ from one board to another. It can be adjusted here, increasing this number if the battery is reading high or decreasing it if it's reading low. It is strongly encouraged to use a multimeter to verify the actual values.
 

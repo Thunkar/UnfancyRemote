@@ -10,21 +10,20 @@ Servo PPM;
 
 SX128XLT LT;
 
-const int TASKS_LENGTH = 6;
+const int TASKS_LENGTH = 5;
 
-char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "setLEDs", "printStats" };
-long periods[] = { 1, 20, 1, 1000, 100, 2000 };
-long lastRun[] = { 0, 0, 0, 0, 0, 0 };
-long executions[] = { 0, 0, 0, 0, 0, 0 };
+char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "printStats" };
+long periods[] = { 1, 20, 1, 1000, 2000 };
+long lastRun[] = { 0, 0, 0, 0, 0 };
+long executions[] = { 0, 0, 0, 0, 0 };
 
-const int LEDS_LENGTH = 3;
+// const int LEDS_LENGTH = 3;
 
-int LEDPins[] = { L2, L3, L4 };
-int LEDStatus[] = { LOW, LOW, LOW };
-int storedLEDStatus[] = { LOW, LOW, LOW };
-long LEDPeriods[] = { -1, -1, -1 };
-int LEDResetCounters[] = { -1, -1, -1 };
-long lastLEDToggled[] = { 0, 0, 0 };
+// int LEDStatus[] = { LOW, LOW, LOW };
+// int storedLEDStatus[] = { LOW, LOW, LOW };
+// long LEDPeriods[] = { -1, -1, -1 };
+// int LEDResetCounters[] = { -1, -1, -1 };
+// long lastLEDToggled[] = { 0, 0, 0 };
 
 const unsigned int ENCODED_MAX = 65535;
 const unsigned int ENCODED_HALF = 32768;
@@ -79,34 +78,34 @@ void setError(char reason[]) {
   strcpy(errorReason, reason);
 }
 
-void ONSequence() {
-    for(int i = LEDS_LENGTH-1; i > -1; i--) {
-      digitalWrite(LEDPins[i], HIGH);
-      delay(100);
-    }
-    delay(100);
-    for(int i = 0; i < LEDS_LENGTH; i++) {
-      digitalWrite(LEDPins[i], LOW);
-      delay(50);
-    }
-    VCC = readVcc();
-}
+// void ONSequence() {
+//     for(int i = LEDS_LENGTH-1; i > -1; i--) {
+//       digitalWrite(LEDPins[i], HIGH);
+//       delay(100);
+//     }
+//     delay(100);
+//     for(int i = 0; i < LEDS_LENGTH; i++) {
+//       digitalWrite(LEDPins[i], LOW);
+//       delay(50);
+//     }
+//     VCC = readVcc();
+// }
 
-void setLEDOn(int LEDn) {
-  LEDPeriods[LEDn] = 0;
-  LEDResetCounters[LEDn] = -1;
-}
+// void setLEDOn(int LEDn) {
+//   LEDPeriods[LEDn] = 0;
+//   LEDResetCounters[LEDn] = -1;
+// }
 
-void setLEDOff(int LEDn) {
-  LEDPeriods[LEDn] = -1;
-  LEDResetCounters[LEDn] = -1;
-}
+// void setLEDOff(int LEDn) {
+//   LEDPeriods[LEDn] = -1;
+//   LEDResetCounters[LEDn] = -1;
+// }
 
-void flashLED(int LEDn, int times, unsigned long period, int resetStatus) {
-  LEDPeriods[LEDn] = period;
-  LEDResetCounters[LEDn] = times;
-  storedLEDStatus[LEDn] = resetStatus;
-}
+// void flashLED(int LEDn, int times, unsigned long period, int resetStatus) {
+//   LEDPeriods[LEDn] = period;
+//   LEDResetCounters[LEDn] = times;
+//   storedLEDStatus[LEDn] = resetStatus;
+// }
 
 bool checkBattery(unsigned long now) {
   int batValue = analogRead(VBAT);
@@ -238,31 +237,31 @@ bool writePPMValue(unsigned long now) {
   return true;
 }
 
-bool setLEDs(unsigned long now) {
-  for(int i = 0; i < LEDS_LENGTH; i++) {
-    int currentStatus = LEDStatus[i];
-    if(LEDPeriods[i] == -1) {
-      LEDStatus[i] = LOW;
-    } else if(LEDPeriods[i] == 0) {
-      LEDStatus[i] = HIGH;
-    } else if(now - lastLEDToggled[i] >= LEDPeriods[i]) {
-      int isBlinking = LEDResetCounters[i] != 0;
-      if(isBlinking) {
-        LEDStatus[i] = !LEDStatus[i];
-        if(LEDStatus[i] && LEDResetCounters[i] > 0) {
-          LEDResetCounters[i]--;
-        }
-        lastLEDToggled[i] = now;
-      } else {
-        storedLEDStatus[i] ? setLEDOn(i) : setLEDOff(i);
-      }
-    }
-    if(currentStatus != LEDStatus[i]) {
-      digitalWrite(LEDPins[i], LEDStatus[i]);
-    }
-  }
-  return true;
-}
+// bool setLEDs(unsigned long now) {
+//   for(int i = 0; i < LEDS_LENGTH; i++) {
+//     int currentStatus = LEDStatus[i];
+//     if(LEDPeriods[i] == -1) {
+//       LEDStatus[i] = LOW;
+//     } else if(LEDPeriods[i] == 0) {
+//       LEDStatus[i] = HIGH;
+//     } else if(now - lastLEDToggled[i] >= LEDPeriods[i]) {
+//       int isBlinking = LEDResetCounters[i] != 0;
+//       if(isBlinking) {
+//         LEDStatus[i] = !LEDStatus[i];
+//         if(LEDStatus[i] && LEDResetCounters[i] > 0) {
+//           LEDResetCounters[i]--;
+//         }
+//         lastLEDToggled[i] = now;
+//       } else {
+//         storedLEDStatus[i] ? setLEDOn(i) : setLEDOff(i);
+//       }
+//     }
+//     if(currentStatus != LEDStatus[i]) {
+//       digitalWrite(LEDPins[i], LEDStatus[i]);
+//     }
+//   }
+//   return true;
+// }
 
 
 bool printStats(unsigned long now) {
@@ -312,7 +311,7 @@ bool printStats(unsigned long now) {
 
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { receiveThrottlePacket, writePPMValue, sendTMPacket, checkBattery, setLEDs, printStats };
+task tasks[] = { receiveThrottlePacket, writePPMValue, sendTMPacket, checkBattery, printStats };
 
 void loop()
 {
@@ -330,13 +329,11 @@ void loop()
 
 void setup()
 {
-  pinMode(PPM_L1, OUTPUT);
-  pinMode(L2, OUTPUT);
-  pinMode(L3, OUTPUT);
-  pinMode(L4, OUTPUT);
-  ONSequence();
+  pinMode(PPM_THR1, OUTPUT);
+  pinMode(LED, OUTPUT);
+ // ONSequence();
   attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
-  PPM.attach(PPM_L1);
+  PPM.attach(PPM_THR1);
 
   #ifdef DEBUG
   Serial.begin(115200);

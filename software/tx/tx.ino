@@ -6,6 +6,9 @@
 #include "board.h"
 #include "settings.h"
 #include <ProgramLT_Definitions.h>
+#include <FastLED.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 SX128XLT LT;
 
@@ -22,9 +25,8 @@ const unsigned int ENCODED_HALF = 32768;
 
 const int LEDS_LENGTH = 4;
 
-int LEDPins[] = { PPM_L1, L2, L3, L4 };
-int LEDStatus[] = { LOW, LOW, LOW, LOW };
-int storedLEDStatus[] = { LOW, LOW, LOW, LOW };
+CRGB LEDStatus[] = { CRGB::Black, CRGB::Black, CRGB::Black, CRGB::Black };
+CRGB storedLEDStatus[] = { CRGB::Black, CRGB::Black, CRGB::Black, CRGB::Black };
 unsigned long LEDPeriods[] = { -1, -1, -1, -1 };
 int LEDResetCounters[] = { -1, -1, -1, -1 };
 unsigned long lastLEDToggled[] = { 0, 0, 0, 0 };
@@ -110,29 +112,8 @@ void printFlags(char title[]) {
 }
 
 int readVcc(void) {
-   int result;
-   ADCSRA = (1<<ADEN);  //enable and
-   ADCSRA |= (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2);  // set prescaler to 128
-  // set the reference to Vcc and the measurement to the internal 1.1V reference
-   ADMUX = (1<<REFS0) | (1<<MUX3) | (1<<MUX2) | (1<<MUX1);
-   delay(1); // Wait for ADC and Vref to settle
-   ADCSRA |= (1<<ADSC); // Start conversion
-   while (bit_is_set(ADCSRA,ADSC)); // wait until done
-   result = ADC;
-   // second time is a charm
-   ADCSRA |= (1<<ADSC); // Start conversion
-   while (bit_is_set(ADCSRA,ADSC)); // wait until done
-   result = ADC;
-   // must be individually calibrated for EACH BOARD
-   result = VREF / (unsigned long)result; //1126400 = 1.1*1024*1000
-   return result; // Vcc in millivolts
-}
-
-void pciSetup(byte pin)
-{
-    *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));  // enable pin
-    PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
-    PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
+  int result = 0;
+  return result; // Vcc in millivolts
 }
 
 void clearError() {
@@ -172,7 +153,8 @@ void writeSettings() {
 
 void ONSequence() {
     for(int i = LEDS_LENGTH-1; i > -1; i--) {
-      digitalWrite(LEDPins[i], HIGH);
+      LEDStatus[i] = CRGB::Red;
+      FastLED.show();
       delay(100);
     }
     digitalWrite(ON, HIGH);
@@ -190,17 +172,19 @@ void ONSequence() {
     };
     digitalWrite(MOTOR, LOW);
     for(int i = 0; i < LEDS_LENGTH; i++) {
-      digitalWrite(LEDPins[i], LOW);
+      LEDStatus[i] = CRGB::Black;
+      FastLED.show();
       delay(50);
     }
 }
 
 void calibrate() {
-  digitalWrite(L4, HIGH);
+  LEDStatus[3] = CRGB::White;
+  FastLED.show();
   while(!digitalRead(BUTTON)) {
-    centerAcc = analogRead(THROTTLE1);
+    centerAcc = analogRead(PPM_THR1);
     #ifdef DUAL_THROTTLE
-    centerBrake = analogRead(THROTTLE2);
+    centerBrake = analogRead(THR2);
     #else
     Serial.println();
     #endif
@@ -208,10 +192,11 @@ void calibrate() {
   digitalWrite(MOTOR, HIGH);
   delay(500);
   digitalWrite(MOTOR, LOW);
-  digitalWrite(L3, HIGH);
+  LEDStatus[2] = CRGB::White;
+  FastLED.show();
   int diff = 0;
   while(!digitalRead(BUTTON)) {
-    unsigned int current = analogRead(THROTTLE1);
+    unsigned int current = analogRead(PPM_THR1);
     int newDiff = abs((int)centerAcc-(int)current);
     if(newDiff > diff) {
       calAcc = current;
@@ -221,14 +206,15 @@ void calibrate() {
   digitalWrite(MOTOR, HIGH);
   delay(500);
   digitalWrite(MOTOR, LOW);
-  digitalWrite(L2, HIGH);
+  LEDStatus[1] = CRGB::White;
+  FastLED.show();
   diff = 0;
   while(!digitalRead(BUTTON)) {
     #ifdef DUAL_THROTTLE
-    int current = analogRead(THROTTLE2);
+    int current = analogRead(THR2);
     int newDiff = abs((int)centerBrake-(int)current);
     #else
-    int current = analogRead(THROTTLE1);
+    int current = analogRead(PPM_THR1);
     int newDiff = abs((int)centerAcc-(int)current);
     #endif
     if(newDiff > diff) {
@@ -237,10 +223,13 @@ void calibrate() {
     }
   }
   inverted = calAcc < calBrake;
-  digitalWrite(PPM_L1, HIGH);
   digitalWrite(MOTOR, HIGH);
   delay(500);
   digitalWrite(MOTOR, LOW);
+  for(int i = 0; i < LEDS_LENGTH; i++) {
+    LEDStatus[i] = CRGB::Black;
+    FastLED.show();
+  }
 }
 
 void setLEDOn(int LEDn) {
@@ -331,7 +320,9 @@ bool checkButton(unsigned long now) {
     if (buttonState) {
       digitalWrite(MOTOR, HIGH);
       digitalWrite(ON, LOW);
-      delay(500);
+      digitalWrite(4, LOW);
+      pinMode(BUTTON, INPUT_PULLDOWN);
+      delay(999999999999);
     }
   }
 
@@ -352,16 +343,16 @@ bool checkButton(unsigned long now) {
 
 bool checkBattery(unsigned long now) {
   if(lastButtonState) {
-    return;
+    return false;
   }
   int batValue = analogRead(VBAT);
   int scaledBatmVolts = map(batValue, 0, 1023, 0, VCC);
   
   float newBatteryVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
   batteryVoltage = batteryVoltage != -1 ? (newBatteryVoltage + batteryVoltage) / 2 : newBatteryVoltage;
-  if(currentDisplayMode != 1 && batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1]) {
-    changeMode(1);
-  }
+  // if(currentDisplayMode != 1 && batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1]) {
+  //   changeMode(1);
+  // }
   return true;
 }
 
@@ -371,8 +362,8 @@ bool readThrottle(unsigned long now) {
     return true;
   }
   #ifdef DUAL_THROTTLE
-  unsigned int throttle1Value = analogRead(THROTTLE1);
-  unsigned int throttle2Value = analogRead(THROTTLE2);
+  unsigned int throttle1Value = analogRead(PPM_THR1);
+  unsigned int throttle2Value = analogRead(THR2);
   throttle1Value = constrain(throttle1Value, min(centerAcc, calAcc), max(centerAcc, calAcc));
   throttle2Value = constrain(throttle2Value, min(centerBrake, calBrake), max(centerBrake, calBrake));
 
@@ -388,7 +379,7 @@ bool readThrottle(unsigned long now) {
                                       ENCODED_HALF - map(throttle1Value, calAcc, centerAcc, ENCODED_HALF+1, ENCODED_MAX); 
   }
   #else
-  unsigned int throttle1Value = analogRead(THROTTLE1);
+  unsigned int throttle1Value = analogRead(PPM_THR1);
   throttle1Value = constrain(throttle1Value, min(calBrake, calAcc), max(calBrake, calAcc));
   unsigned int scaledValue = throttle1Value > centerAcc ? 
                                 map(throttle1Value, centerAcc, max(calBrake, calAcc), ENCODED_HALF, ENCODED_MAX) : 
@@ -409,20 +400,12 @@ bool readThrottle(unsigned long now) {
   return true;
 }
 
-void processRFInterrupt() {
-  RFAvailable = !digitalRead(RFBUSY) && digitalRead(DIO1); // RFBusy should be checked by the library, but it does polling and not interrupts. This should avoid most Busy Timeout errors.
+void IRAM_ATTR processRFInterrupt() {
+  RFAvailable = !digitalRead(RFBUSY);
   interruptCounter++;
 }
 
-ISR (PCINT0_vect) {
-  processRFInterrupt();
-}  
-
-ISR (PCINT2_vect) {
-  processRFInterrupt();
-}  
-
-void processTMPacket() {
+void processTMPacket() {    
   unsigned int RXIdentity = -1;
   unsigned int receivedValue = 0;
   unsigned int measuredRXPacketLength = LT.readRXPacketL();
@@ -459,6 +442,10 @@ void processTMPacket() {
 
 bool receiveTMPacket(unsigned long now) {
   clearError();
+  if(!checkRXIRQError()) {
+    setError("IRQ Error");
+    return false;
+  }   
   if(!requestTM) {
     currentTMCycles = 0;
     return false;
@@ -479,7 +466,7 @@ bool receiveTMPacket(unsigned long now) {
     LT.config();
     return false;
   }
-  if(!RFAvailable) {
+  if(!checkTXRXDone() || !RFAvailable) {
     currentTMCycles++;
     return false;
   }
@@ -488,7 +475,7 @@ bool receiveTMPacket(unsigned long now) {
     #ifdef DEBUG_FLAGS       
     printFlags("Receive");
     #endif
-    LT.receiveSXBuffer(0, 0, NO_WAIT);
+    LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
     return false;    
   } else {    
     #ifdef DEBUG_FLAGS
@@ -501,6 +488,17 @@ bool receiveTMPacket(unsigned long now) {
     currentTMCycles = 0;
     return true;  
   }
+}
+
+bool checkTXRXDone() {
+  uint16_t IRQStatus = LT.readIrqStatus();
+  bool done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+  return done;
+}
+
+bool checkRXIRQError() {
+  uint16_t IRQStatus = LT.readIrqStatus();
+  return !(IRQStatus & (IRQ_HEADER_ERROR + IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
 }
 
 bool sendThrottlePacket(unsigned long now)
@@ -520,7 +518,7 @@ bool sendThrottlePacket(unsigned long now)
     return false;
   }
 
-  if(!RFAvailable && !forceTX) {
+  if((!RFAvailable || !checkTXRXDone()) && !forceTX) {
     currentTransmitCycles++;
     return false;
   }
@@ -539,7 +537,7 @@ bool sendThrottlePacket(unsigned long now)
   printFlags("Transmit");
   #endif
   currentTransmitCycles = 0;
-  LT.transmitSXBuffer(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
+  LT.transmitSXBufferIRQ(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
   packets++;
 
   return true;                  
@@ -549,13 +547,13 @@ bool setLEDs(unsigned long now) {
   for(int i = 0; i < LEDS_LENGTH; i++) {
     int currentStatus = LEDPeriods[i];
     if(LEDPeriods[i] == -1) {
-      LEDStatus[i] = LOW;
+      LEDStatus[i] = CRGB::Black;
     } else if(LEDPeriods[i] == 0) {
-      LEDStatus[i] = HIGH;
+      LEDStatus[i] = CRGB::White;
     } else if(now - lastLEDToggled[i] >= LEDPeriods[i]) {
       int isBlinking = LEDResetCounters[i] != 0;
       if(isBlinking) {
-        LEDStatus[i] = !LEDStatus[i];
+        LEDStatus[i] = LEDStatus[i] == CRGB::Black ? CRGB::White : CRGB::Black;
         if(LEDStatus[i] && LEDResetCounters[i] > 0) {
           LEDResetCounters[i]--;
         }
@@ -564,10 +562,8 @@ bool setLEDs(unsigned long now) {
         storedLEDStatus[i] ? setLEDOn(i) : setLEDOff(i);
       }
     }
-    if(currentStatus != LEDStatus[i]) {
-      digitalWrite(LEDPins[i], LEDStatus[i]);
-    }
   }
+  FastLED.show();
   return true;
 }
 
@@ -679,23 +675,28 @@ void loop()
 
 void setup()
 {
-  pinMode(PPM_L1, OUTPUT);
-  pinMode(L2, OUTPUT);
-  pinMode(L3, OUTPUT);
-  pinMode(L4, OUTPUT);
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+
+  FastLED.addLeds<WS2812B, LED, GRB>(LEDStatus, LEDS_LENGTH);
+  FastLED.setBrightness(255);
+  FastLED.show();
+  pinMode(PPM_THR1, INPUT);
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
+  pinMode(BUTTON, INPUT);
   ONSequence();
-  VCC = readVcc();
-  pciSetup(DIO1);
-  pciSetup(RFBUSY);
 
+  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
+
+  #ifdef DEBUG
   Serial.begin(115200);
-  readSettings();
-  if((centerAcc == calAcc && centerAcc == calBrake) || forceCalibration) {
-    calibrate();
-    writeSettings();
-  }
+  #endif
+
+  // readSettings();
+  // if((centerAcc == calAcc && centerAcc == calBrake) || forceCalibration) {
+  //   calibrate();
+  //   writeSettings();
+  // }
 
   SPI.begin();
 
@@ -708,6 +709,8 @@ void setup()
 
   frequency = channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
   LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.clearIrqStatus(IRQ_RADIO_ALL);
+
   #ifdef DEBUG
   Serial.println(F("Remote ready"));
   #endif

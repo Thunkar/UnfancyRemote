@@ -1,6 +1,5 @@
 //*******  Setup hardware pin definitions here ! ***************
-//#define HW_V1
-#define HW_V2
+
 const int NSS = 7;                           //select on LoRa device
 const int NRESET = 9;                        //reset on LoRa device
 const int RFBUSY = 10;                        //RF busy on LoRa device 
@@ -10,18 +9,12 @@ const int DIO3 = -1;                         //DIO3 on LoRa device, normally not
 const int RX_EN = -1;                        //pin for RX enable, used on some SX1280 devices, set to -1 if not used
 const int TX_EN = -1;                        //pin for TX enable, used on some SX1280 devices, set to -1 if not used
 
-const int BUTTON = A0;
-const int PPM_L1 = 2;
-const int L2 = 3;
-const int L3 = 4;
-const int L4 = 5;
-const int VBAT = A1;   
+const int BUTTON = 3;
+const int PPM_THR1 = 0;
+const int LED = 8;
+const int VBAT = 2;   
 
-#ifdef HW_V1
-const unsigned long R2 = 7100;
-#else
 const unsigned long R2 = 6800;
-#endif
 const unsigned long R1 = 100000;
 
 
