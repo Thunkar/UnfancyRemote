@@ -8570,7 +8570,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C11702"
+		(property "LCSC" "C22962"
 			(at 201.93 45.72 90)
 			(effects
 				(font
@@ -9181,7 +9181,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C25741"
+		(property "LCSC" "C22961"
 			(at 91.44 167.64 0)
 			(effects
 				(font
@@ -9384,15 +9384,6 @@
 		)
 		(property "Description" ""
 			(at 245.11 102.87 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C413992"
-			(at 243.078 95.758 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10331,7 +10322,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C25741"
+		(property "LCSC" "C25803"
 			(at 134.62 162.56 0)
 			(effects
 				(font
@@ -10615,15 +10606,6 @@
 		)
 		(property "Description" "RGB LED with integrated controller, 2.0 x 2.0 mm, 12 mA"
 			(at 53.34 59.69 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C965555"
-			(at 64.77 53.3714 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10917,7 +10899,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C25741"
+		(property "LCSC" "C25803"
 			(at 87.63 93.98 0)
 			(effects
 				(font
@@ -11070,7 +11052,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C25117"
+		(property "LCSC" "C22962"
 			(at 260.35 82.55 90)
 			(effects
 				(font
@@ -11208,15 +11190,6 @@
 		)
 		(property "Description" "Polarized capacitor"
 			(at 205.74 30.48 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C119051"
-			(at 209.55 28.3209 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11372,7 +11345,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C25741"
+		(property "LCSC" "C25803"
 			(at 104.14 134.62 0)
 			(effects
 				(font
@@ -11726,7 +11699,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C965555"
+		(property "LCSC" "C5349957"
 			(at 0 55.88 0)
 			(effects
 				(font
@@ -11873,7 +11846,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C25744"
+		(property "LCSC" "C22962"
 			(at 201.93 57.15 90)
 			(effects
 				(font
@@ -11945,15 +11918,6 @@
 		)
 		(property "Description" "RGB LED with integrated controller, 2.0 x 2.0 mm, 12 mA"
 			(at 57.15 27.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C965555"
-			(at 68.58 21.6214 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12168,15 +12132,6 @@
 		)
 		(property "Description" ""
 			(at 236.22 149.86 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C119051"
-			(at 240.03 147.701 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12624,15 +12579,6 @@
 		)
 		(property "Description" "Inductor"
 			(at 222.25 88.9 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C696469"
-			(at 222.25 83.82 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13536,15 +13482,6 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C119051"
-			(at 267.97 105.7909 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
 		(pin "2"
 			(uuid "8647522c-62f0-4132-86b5-a906b3325c7c")
 		)
@@ -13838,15 +13775,6 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C965555"
-			(at 44.45 53.3714 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
 		(pin "1"
 			(uuid "88aa89c9-3232-4d0d-b38f-8ade3fef8f12")
 		)
@@ -14075,15 +14003,6 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C52923"
-			(at 252.73 148.59 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
 		(pin "1"
 			(uuid "7d9c5c62-9e3d-46bb-9752-a98f453566b2")
 		)
@@ -14146,15 +14065,6 @@
 		)
 		(property "Description" "Polarized capacitor"
 			(at 199.39 106.68 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C119051"
-			(at 192.024 108.204 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -14355,15 +14265,6 @@
 		)
 		(property "Description" "Polarized capacitor"
 			(at 265.43 33.02 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "LCSC" "C123256"
-			(at 269.24 31.75 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -14662,7 +14563,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C52923"
+		(property "LCSC" "C15849"
 			(at 207.01 95.25 0)
 			(effects
 				(font
@@ -14882,7 +14783,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C11702"
+		(property "LCSC" "C22962"
 			(at 200.66 64.77 90)
 			(effects
 				(font
