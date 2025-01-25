@@ -1,4 +1,3 @@
-
 #include <Arduino.h>
 #include <SPI.h>
 #include <SX128XLT.h>
@@ -6,35 +5,27 @@
 #include "board.h"
 #include "settings.h"
 #include <ProgramLT_Definitions.h>
-#include <FastLED.h>
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
+#include "LED.h"
+#include "motor.h"
+#include "wifiSetup.h"
 
 SX128XLT LT;
 
-const int TASKS_LENGTH = 9;
+int LAST_TASK;
+int FIRST_TASK;
 
-char *taskNames[] = { "readThrottle", "sendThrottlePacket", "receiveTMPacket", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats" };
-unsigned long periods[] = { 10, 20, 1, 100, 1000, 50, 10, 10, 2000 };
-unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+char *taskNames[] = { "readThrottle", "sendThrottlePacket", "receiveTMPacket", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "processDNSRequest" };
+unsigned long periods[] = { 10, 20, 1, 100, 1000, 50, 10, 10, 2000, 10 };
+unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 unsigned int encodedThrottleValue;
 const unsigned int ENCODED_MAX = 65535;
 const unsigned int ENCODED_HALF = 32768;
 
-const int LEDS_LENGTH = 4;
-
-CRGB LEDStatus[] = { CRGB::Black, CRGB::Black, CRGB::Black, CRGB::Black };
-CRGB storedLEDStatus[] = { CRGB::Black, CRGB::Black, CRGB::Black, CRGB::Black };
-unsigned long LEDPeriods[] = { -1, -1, -1, -1 };
-int LEDResetCounters[] = { -1, -1, -1, -1 };
-unsigned long lastLEDToggled[] = { 0, 0, 0, 0 };
-
-int motorStatus = LOW;
-unsigned long motorPeriod = -1;
-unsigned long lastMotorToggled = 0;
-int motorResetCounter = -1;
+CRGB rainbow[] = { CRGB::Red, CRGB::Orange, CRGB::Yellow, CRGB::Green };
  
 int lastButtonState = LOW;  
 
@@ -46,7 +37,7 @@ unsigned long changeModeDelay = 500;
 float batteryVoltage = -1.0;
 
 int lastDisplayMode = 0;
-int currentDisplayMode = 0; // -1 transition, 0 board voltage, 1 remote voltage
+int currentDisplayMode = 0; // -1 transition, 0 board voltage/connection status, 1 remote voltage
 int nextDisplayMode = 0;
 unsigned long transitionDelay = 250;
 unsigned long lastTransition = 0;
@@ -89,8 +80,10 @@ unsigned int centerAcc;
 unsigned int centerBrake;
 unsigned int inverted;
 
-bool forceCalibration = false;
-int forceCalibrationDelay = 5000;
+bool setupMode = false;
+int setupModeDelay = 5000;
+
+bool isConnected = true;
 
 #define DEBUG
 //#define DEBUG_FLAGS
@@ -109,11 +102,6 @@ void printFlags(char title[]) {
   Serial.print(RFAvailable);
   Serial.print(F(" | RequestTM: "));
   Serial.println(requestTM);
-}
-
-int readVcc(void) {
-  int result = 0;
-  return result; // Vcc in millivolts
 }
 
 void clearError() {
@@ -153,7 +141,7 @@ void writeSettings() {
 
 void ONSequence() {
     for(int i = LEDS_LENGTH-1; i > -1; i--) {
-      LEDStatus[i] = CRGB::Red;
+      LEDColor[i] = rainbow[i];
       FastLED.show();
       delay(100);
     }
@@ -164,22 +152,22 @@ void ONSequence() {
     unsigned long now = millis();
     unsigned long lastCheck = now;
     while(digitalRead(BUTTON)){
-      forceCalibration = (lastCheck - now) > forceCalibrationDelay;
-      if(forceCalibration) {
-        digitalWrite(MOTOR, LOW);
-      }
+      setupMode = (lastCheck - now) > setupModeDelay;
       lastCheck = millis();
+      if(setupMode) {
+        break;
+      }
     };
     digitalWrite(MOTOR, LOW);
     for(int i = 0; i < LEDS_LENGTH; i++) {
-      LEDStatus[i] = CRGB::Black;
+      LEDColor[i] = CRGB::Black;
       FastLED.show();
       delay(50);
     }
 }
 
 void calibrate() {
-  LEDStatus[3] = CRGB::White;
+  LEDColor[3] = CRGB::White;
   FastLED.show();
   while(!digitalRead(BUTTON)) {
     centerAcc = analogRead(PPM_THR1);
@@ -192,7 +180,7 @@ void calibrate() {
   digitalWrite(MOTOR, HIGH);
   delay(500);
   digitalWrite(MOTOR, LOW);
-  LEDStatus[2] = CRGB::White;
+  LEDColor[2] = CRGB::White;
   FastLED.show();
   int diff = 0;
   while(!digitalRead(BUTTON)) {
@@ -206,7 +194,7 @@ void calibrate() {
   digitalWrite(MOTOR, HIGH);
   delay(500);
   digitalWrite(MOTOR, LOW);
-  LEDStatus[1] = CRGB::White;
+  LEDColor[1] = CRGB::White;
   FastLED.show();
   diff = 0;
   while(!digitalRead(BUTTON)) {
@@ -227,30 +215,9 @@ void calibrate() {
   delay(500);
   digitalWrite(MOTOR, LOW);
   for(int i = 0; i < LEDS_LENGTH; i++) {
-    LEDStatus[i] = CRGB::Black;
+    LEDColor[i] = CRGB::Black;
     FastLED.show();
   }
-}
-
-void setLEDOn(int LEDn) {
-  LEDPeriods[LEDn] = 0;
-  LEDResetCounters[LEDn] = -1;
-}
-
-void setLEDOff(int LEDn) {
-  LEDPeriods[LEDn] = -1;
-  LEDResetCounters[LEDn] = -1;
-}
-
-void flashLED(int LEDn, int times, unsigned long period, int resetStatus) {
-  LEDPeriods[LEDn] = period;
-  LEDResetCounters[LEDn] = times;
-  storedLEDStatus[LEDn] = resetStatus;
-}
-
-void pulseMotor(int times, unsigned long period) {
-  motorPeriod = period;
-  motorResetCounter = times;
 }
 
 void changeMode(int mode) {
@@ -271,24 +238,33 @@ bool displayMode(unsigned long now) {
   }
   switch(currentDisplayMode) {
     case 0: {
-       for(int i = 0; i < BATTERY_THRESHOLDS_LENGTH-1; i++) {
-        if(boardCellVoltage > BOARD_BATTERY_CELL_V_THR[i]) {
-          setLEDOn(i);
-        } else {
-          setLEDOff(i);
+      if(isConnected && !setupMode) {
+        for(int i = 0; i < BATTERY_THRESHOLDS_LENGTH-1; i++) {
+          if(boardCellVoltage > BOARD_BATTERY_CELL_V_THR[i]) {
+            changeLEDColor(i, rainbow[i]);
+            setLEDOn(i);
+          } else {
+            setLEDOff(i);
+          }
         }
-      }
-      if(boardCellVoltage <= BOARD_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1] && boardCellVoltage > 0) {
-        pulseMotor(-1, 500);
-        flashLED(3, -1, 200, 0);
+        if(boardCellVoltage <= BOARD_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1] && boardCellVoltage > 0) {
+          pulseMotor(-1, 500);
+          flashLED(3, -1, 200, CRGB::Black);
+        } else {
+          pulseMotor(-1, -1);
+        }
       } else {
-        pulseMotor(-1, -1);
+        for(int i = 0; i < LEDS_LENGTH; i++) {
+          changeLEDColor(i, setupMode ? CRGB::Green : CRGB::Blue);
+          sequence();
+        }
       }
       break;
     }
     case 1: {
       for(int i = 0; i < BATTERY_THRESHOLDS_LENGTH-1; i++) {
         if(batteryVoltage > REMOTE_BATTERY_CELL_V_THR[i]) {
+          changeLEDColor(i, rainbow[i]);
           setLEDOn(i);
         } else {
           setLEDOff(i);
@@ -322,7 +298,7 @@ bool checkButton(unsigned long now) {
       digitalWrite(ON, LOW);
       digitalWrite(4, LOW);
       pinMode(BUTTON, INPUT_PULLDOWN);
-      delay(999999999999);
+      delay(100000000000);
     }
   }
 
@@ -345,14 +321,14 @@ bool checkBattery(unsigned long now) {
   if(lastButtonState) {
     return false;
   }
-  int batValue = analogRead(VBAT);
-  int scaledBatmVolts = map(batValue, 0, 1023, 0, VCC);
+
+  int scaledBatmVolts = analogReadMilliVolts(VBAT);
   
   float newBatteryVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
   batteryVoltage = batteryVoltage != -1 ? (newBatteryVoltage + batteryVoltage) / 2 : newBatteryVoltage;
-  // if(currentDisplayMode != 1 && batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1]) {
-  //   changeMode(1);
-  // }
+  if(currentDisplayMode != 1 && batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1]) {
+     changeMode(1);
+  }
   return true;
 }
 
@@ -461,6 +437,7 @@ bool receiveTMPacket(unsigned long now) {
     waitingForRX = false;
     forceTX = true;
     lastTMPacketReceived = now;
+    isConnected = false;
     setError("TM timeout");
     LT.setMode(MODE_STDBY_RC);  
     LT.config();
@@ -484,6 +461,7 @@ bool receiveTMPacket(unsigned long now) {
     processTMPacket();
     waitingForRX = false;
     lastTMPacketReceived = now;
+    isConnected = true;
     requestTM = 0;
     currentTMCycles = 0;
     return true;  
@@ -501,8 +479,7 @@ bool checkRXIRQError() {
   return !(IRQStatus & (IRQ_HEADER_ERROR + IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
 }
 
-bool sendThrottlePacket(unsigned long now)
-{
+bool sendThrottlePacket(unsigned long now) {
   if(requestTM) {
     currentTransmitCycles = 0;
     return false;
@@ -543,55 +520,6 @@ bool sendThrottlePacket(unsigned long now)
   return true;                  
 }
 
-bool setLEDs(unsigned long now) {
-  for(int i = 0; i < LEDS_LENGTH; i++) {
-    int currentStatus = LEDPeriods[i];
-    if(LEDPeriods[i] == -1) {
-      LEDStatus[i] = CRGB::Black;
-    } else if(LEDPeriods[i] == 0) {
-      LEDStatus[i] = CRGB::White;
-    } else if(now - lastLEDToggled[i] >= LEDPeriods[i]) {
-      int isBlinking = LEDResetCounters[i] != 0;
-      if(isBlinking) {
-        LEDStatus[i] = LEDStatus[i] == CRGB::Black ? CRGB::White : CRGB::Black;
-        if(LEDStatus[i] && LEDResetCounters[i] > 0) {
-          LEDResetCounters[i]--;
-        }
-        lastLEDToggled[i] = now;
-      } else {
-        storedLEDStatus[i] ? setLEDOn(i) : setLEDOff(i);
-      }
-    }
-  }
-  FastLED.show();
-  return true;
-}
-
-bool setMotor(unsigned long now) {
-  int currentStatus = motorStatus;
-  if(motorPeriod == -1) {
-    motorStatus = LOW;  
-  } else if (motorPeriod == 0) {
-    motorStatus = HIGH;
-  } else if (now - lastMotorToggled >= motorPeriod) {
-    int isPulsing = motorResetCounter != 0;
-    if(isPulsing) {
-      motorStatus = !motorStatus;
-      if(motorStatus && motorResetCounter > 0){
-        motorResetCounter--;
-      }
-      lastMotorToggled = now;
-    } else {
-      motorResetCounter = -1;
-      motorPeriod = -1;
-    }
-  }
-  if(currentStatus != motorStatus) {
-    digitalWrite(MOTOR, motorStatus);
-  }
-  return true;
-}
-
 bool printStats(unsigned long now) {
   #ifdef DEBUG
   if(errors > 0) {
@@ -599,7 +527,7 @@ bool printStats(unsigned long now) {
     Serial.println(errorReason);
     Serial.println(F("//////////////////////"));
   }
-  float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
+  float ellapsed = (now - lastRun[8])/1000;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
   Serial.print(F("s | VBat: "));
@@ -627,10 +555,10 @@ bool printStats(unsigned long now) {
   Serial.print(F(" | Inverted: "));
   Serial.println(inverted ? "y" : "n");
   Serial.println(F("-------------- TASKS --------------"));
-  for(int i = 0; i < TASKS_LENGTH - 1; i++) {
+  for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     char prBuffer[45];
-    int frequency = round(executions[i] / ellapsed);
-    sprintf(prBuffer, "%-20s | %5dHz", taskNames[i], frequency);
+    float frequency = executions[i] / ellapsed;
+    sprintf(prBuffer, "%-20s | %.2fHz", taskNames[i], frequency);
     Serial.print(prBuffer);
     Serial.println("");
     executions[i] = 0;
@@ -655,13 +583,19 @@ bool printStats(unsigned long now) {
   return true;
 }
 
+bool processDNSRequest(unsigned long now) {
+  dnsServer.processNextRequest();
+  return true;
+}
+
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { readThrottle, sendThrottlePacket, receiveTMPacket, checkButton, checkBattery, displayMode, setLEDs, setMotor, printStats };
+task tasks[] = { readThrottle, sendThrottlePacket, receiveTMPacket, checkButton, checkBattery, displayMode, setLEDs, setMotor, printStats, processDNSRequest };
 
-void loop()
-{
-  for(int i = 0; i < TASKS_LENGTH; i++) {
+void loop() {
+  LAST_TASK = setupMode ? 9 : 8;
+  FIRST_TASK = setupMode ? 3 : 0; 
+  for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     unsigned long now = millis();
     if(now - lastRun[i] >= periods[i]) {
       if(tasks[i](now)) {
@@ -673,46 +607,56 @@ void loop()
 }
 
 
-void setup()
-{
+void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
-  FastLED.addLeds<WS2812B, LED, GRB>(LEDStatus, LEDS_LENGTH);
-  FastLED.setBrightness(255);
+  FastLED.addLeds<WS2812B, LED, GRB>(LEDColor, LEDS_LENGTH);
+  FastLED.setBrightness(128);
   FastLED.show();
   pinMode(PPM_THR1, INPUT);
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
   pinMode(BUTTON, INPUT);
   ONSequence();
-
-  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
-
+  
   #ifdef DEBUG
   Serial.begin(115200);
   #endif
 
-  // readSettings();
-  // if((centerAcc == calAcc && centerAcc == calBrake) || forceCalibration) {
-  //   calibrate();
-  //   writeSettings();
-  // }
+  if(setupMode) {
+    WiFi.softAP("Unfancy Remote");
+    dnsServer.start(53, "*", WiFi.softAPIP());
+    setupServer();
 
-  SPI.begin();
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    dnsServer.setTTL(300);
+    dnsServer.start(53, "*", WiFi.softAPIP());
 
-  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
-  {
+    server.begin();
+
     #ifdef DEBUG
-    Serial.println(F("Device error"));
+    Serial.println(F("Setup mode"));
+    #endif
+  } else {
+    attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
+
+    SPI.begin();
+
+    if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
+    {
+      #ifdef DEBUG
+      Serial.println(F("Device error"));
+      #endif
+    }
+
+    frequency = channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
+    LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+    LT.clearIrqStatus(IRQ_RADIO_ALL);
+
+    #ifdef DEBUG
+    Serial.println(F("Remote ready"));
     #endif
   }
 
-  frequency = channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
-  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-  LT.clearIrqStatus(IRQ_RADIO_ALL);
-
-  #ifdef DEBUG
-  Serial.println(F("Remote ready"));
-  #endif
-  
+ 
 }

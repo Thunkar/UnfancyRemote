@@ -500,7 +500,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "../cad/misc/PCBv2.step",
+      "step": "../cad/misc/PCBv3.step",
       "svg": "",
       "vrml": ""
     },
