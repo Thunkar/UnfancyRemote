@@ -10,6 +10,8 @@ Once you have it secured, import it in your arduino environment using the option
 
 ![Include zip library](./images/add_zip_library.png)
 
+Do the same for https://github.com/ednieuw/ESPAsyncWebServer.git
+
 ## Installing drivers for the USB-to-serial converter
 
 If you're using windows, chances are you'll need to install [these drivers](https://ftdichip.com/drivers/)
