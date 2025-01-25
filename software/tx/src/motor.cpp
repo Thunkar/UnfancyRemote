@@ -1,6 +1,4 @@
-#include "board.h"
 #include "motor.h"
-#include <Arduino.h>
 
 int motorStatus = LOW;
 unsigned long motorPeriod = -1;

@@ -1,9 +1,11 @@
+#pragma once
+
 #include <WiFi.h>
-#include <AsyncTCP.h>
 #include "ESPAsyncWebServer.h"
 #include <DNSServer.h>
 
 void setupServer();
+bool processDNSRequest(unsigned long now);
 
-extern DNSServer dnsServer;
 extern AsyncWebServer server;
+extern DNSServer dnsServer;

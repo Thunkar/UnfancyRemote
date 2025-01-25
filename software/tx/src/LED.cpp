@@ -1,10 +1,11 @@
 #include "LED.h"
 
 const int LEDS_LENGTH = 4;
+CRGB rainbow[] = { CRGB::Red, CRGB::Orange, CRGB::Yellow, CRGB::Green };
 
 CRGB LEDColor[] = { CRGB::Black, CRGB::Black, CRGB::Black, CRGB::Black };
 CRGB storedLEDColor[] = { CRGB::White, CRGB::White, CRGB::White, CRGB::White };
-unsigned long LEDPeriods[] = { -1, -1, -1, -1 };
+long LEDPeriods[] = { -1, -1, -1, -1 };
 int LEDResetCounters[] = { -1, -1, -1, -1 };
 unsigned long lastLEDToggled[] = { 0, 0, 0, 0 };
 int sequenceSpeed = 10;
@@ -43,8 +44,6 @@ void sequence() {
 
 bool setLEDs(unsigned long now) {
   for(int i = 0; i < LEDS_LENGTH; i++) {
-    int currentStatus = LEDPeriods[i];
-
     if (LEDPeriods[i] == -1) {
       LEDColor[i] = CRGB::Black;
     } else if(LEDPeriods[i] == 0) {

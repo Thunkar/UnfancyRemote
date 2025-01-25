@@ -1,3 +1,5 @@
+#pragma once
+
 #include "FastLED.h"
 
 void changeLEDColor(int LEDn, CRGB color);
@@ -15,3 +17,4 @@ void sequence();
 
 extern CRGB LEDColor[];
 extern const int LEDS_LENGTH;
+extern CRGB rainbow[];

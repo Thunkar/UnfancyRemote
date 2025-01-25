@@ -1,4 +1,4 @@
-#include "wifiSetup.h"
+#include "wifi_setup.h"
 
 const char* accessPointName = "Unfance Remote AP";
 
@@ -48,4 +48,9 @@ void setupServer(){
   server.onNotFound([&](AsyncWebServerRequest *request){
     request->send(200, "text/html", index_html); 
   });
+}
+
+bool processDNSRequest(unsigned long now) {
+  dnsServer.processNextRequest();
+  return true;
 }

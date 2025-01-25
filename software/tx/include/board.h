@@ -1,3 +1,4 @@
+#pragma once
 //*******  Setup hardware pin definitions here ! ***************
 
 const int NSS = 7;                           //select on LoRa device
@@ -17,8 +18,13 @@ const int MOTOR = 20;
 const int VBAT = 2;
 const int THR2 = 1;
 
+//*******  Setup constants here ! ***************
+
 const unsigned long R2 = 6800;
 const unsigned long R1 = 100000;
+
+const unsigned int ENCODED_MAX = 65535;
+const unsigned int ENCODED_HALF = 32768;
 
 
 //*******  Setup LoRa Test Parameters Here ! ***************
@@ -29,8 +35,6 @@ const unsigned long R1 = 100000;
 #define Bandwidth LORA_BW_1600                   //LoRa bandwidth
 #define SpreadingFactor LORA_SF7                 //LoRa spreading factor
 #define CodeRate LORA_CR_4_5                     //LoRa coding rate
-#define CH_BANDWIDTH_HZ 2500000
-#define BASE_FREQUENCY 2400000000
 
 const unsigned int throttlePacketLength = 4;                  //packet length is fixed 
 const unsigned int TMPacketLength = 3;
