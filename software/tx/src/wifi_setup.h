@@ -1,11 +1,11 @@
 #pragma once
 
+#include <Arduino.h>
 #include <WiFi.h>
 #include "ESPAsyncWebServer.h"
 #include <DNSServer.h>
+#include "state.h"
+#include "config.h"
 
 void setupServer();
-bool processDNSRequest(unsigned long now);
-
-extern AsyncWebServer server;
-extern DNSServer dnsServer;
+bool doServerWork(unsigned long now);

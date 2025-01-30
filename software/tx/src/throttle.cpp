@@ -23,8 +23,8 @@ bool readThrottle(unsigned long now) {
                                       ENCODED_HALF - map(throttle1Value, config.calAcc, config.centerAcc, ENCODED_HALF+1, ENCODED_MAX); 
   }
   #else
-  unsigned int throttle1Value = analogRead(PPM_THR1);
-  throttle1Value = constrain(throttle1Value, min(config.calBrake, config.calAcc), max(config.calBrake, config.calAcc));
+  state.rawThrottleValue = analogReadMilliVolts(PPM_THR1);
+  unsigned int throttle1Value = constrain(throttle1Value, min(config.calBrake, config.calAcc), max(config.calBrake, config.calAcc));
   unsigned int scaledValue = throttle1Value > config.centerAcc ? 
                                 map(throttle1Value, config.centerAcc, max(config.calBrake, config.calAcc), ENCODED_HALF, ENCODED_MAX) : 
                                 map(throttle1Value, min(config.calBrake, config.calAcc), config.centerAcc, 0, ENCODED_HALF); 

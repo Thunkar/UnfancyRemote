@@ -19,7 +19,7 @@
 int LAST_TASK;
 int FIRST_TASK;
 
-char *taskNames[] = { "sendThrottlePacket", "receiveTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "processDNSRequest" };
+char *taskNames[] = { "sendThrottlePacket", "receiveTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -174,7 +174,7 @@ bool printStats(unsigned long now) {
 
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { sendThrottlePacket, receiveTMPacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, printStats, processDNSRequest };
+task tasks[] = { sendThrottlePacket, receiveTMPacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, printStats, doServerWork };
 
 void loop() {
   LAST_TASK = state.setupMode ? 9 : 8;
@@ -194,6 +194,8 @@ void loop() {
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
+  EEPROM.begin(10);
+  readConfig();
   FastLED.addLeds<WS2812B, LED, GRB>(LEDColor, LEDS_LENGTH);
   FastLED.setBrightness(128);
   FastLED.show();
@@ -209,15 +211,7 @@ void setup() {
 
   if(state.setupMode) {
     WiFi.softAP("Unfancy Remote");
-    dnsServer.start(53, "*", WiFi.softAPIP());
     setupServer();
-
-    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-    dnsServer.setTTL(300);
-    dnsServer.start(53, "*", WiFi.softAPIP());
-
-    server.begin();
-
     #ifdef DEBUG
     Serial.println(F("Setup mode"));
     #endif

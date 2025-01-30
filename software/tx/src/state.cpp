@@ -3,6 +3,7 @@
 State state = { 
     // Throttle value
     ENCODED_HALF, 
+    ENCODED_HALF,
     // Button state
     LOW,
     // Modes 

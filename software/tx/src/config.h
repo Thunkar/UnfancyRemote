@@ -12,3 +12,6 @@ struct Config {
 };
 
 extern Config config;
+
+void readConfig();
+void writeConfig();
