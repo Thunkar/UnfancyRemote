@@ -63,11 +63,7 @@ public:
   }
 
   void handleRequest(AsyncWebServerRequest *request) {
-    if (request->method() == HTTP_GET && request->url() == "/") {
-      request->send(200, "text/html", index_html);
-    } else {
-      request->send(200, "text/html", index_html);
-    }
+    request->send(SPIFFS, "/index.html", String(), false);
   }
 };
 
@@ -111,7 +107,7 @@ void setupServer(){
   server.addHandler(&ws);
   server.addHandler(new CaptivePortalHandler()).setFilter(ON_AP_FILTER);
   server.onNotFound([&](AsyncWebServerRequest *request){
-    request->send(200, "text/html", index_html); 
+    request->send(SPIFFS, "/index.html", String(), false);
   });
   
   server.begin();
