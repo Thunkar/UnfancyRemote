@@ -1,7 +1,9 @@
 import { css } from "@emotion/react";
-import { Button } from "@mui/material";
-import { ansiRegular, useAsciiText } from "react-ascii-text";
+import { Typography } from "@mui/material";
+import { slant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
+import useWebSocket, { ReadyState } from "react-use-websocket";
+import { Battery } from "./components/battery";
 
 const container = css({
   display: "flex",
@@ -21,7 +23,7 @@ function App() {
     animationLoop: false,
     animationSpeed: 30,
     fadeInOnly: true,
-    font: ansiRegular,
+    font: slant,
     text: "!Fancy",
   });
 
@@ -33,10 +35,51 @@ function App() {
     }
   };
 
+  const { lastMessage, readyState } = useWebSocket(
+    import.meta.env.VITE_WS_URL ?? `ws://${window.location.hostname}/ws`
+  );
+
+  const connectionStatus = {
+    [ReadyState.CONNECTING]: "Connecting",
+    [ReadyState.OPEN]: "Open",
+    [ReadyState.CLOSING]: "Closing",
+    [ReadyState.CLOSED]: "Closed",
+    [ReadyState.UNINSTANTIATED]: "Uninstantiated",
+  }[readyState];
+
+  const data = lastMessage?.data.split(",") ?? [];
+
+  const [
+    channel,
+    txIdentity,
+    remoteVoltage,
+    cell_n,
+    boardVoltage,
+    throttleRaw,
+    calBrake,
+    calAcc,
+    centerAcc,
+    centerBrake,
+    inverted,
+    isDual,
+  ] = data;
+
   return (
     <div css={container}>
       <pre css={{ color: colors.primary }} ref={refCallback}></pre>
-      <Button variant="outlined">Test</Button>
+      <Typography variant="subtitle1">
+        Connection status: {connectionStatus}
+      </Typography>
+      <Battery
+        title="Remote"
+        cells={1}
+        voltage={remoteVoltage ? parseFloat(remoteVoltage) : -1}
+      ></Battery>
+      <Battery
+        title="Board"
+        cells={cell_n}
+        voltage={boardVoltage ? parseFloat(boardVoltage) : -1}
+      ></Battery>
     </div>
   );
 }
