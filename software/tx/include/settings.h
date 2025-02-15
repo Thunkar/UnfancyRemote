@@ -12,7 +12,7 @@ const float BRAKE_SENSITIVITY = 5;
 
 // Task periods in ms
 
-const unsigned long periods[] = { 20, 1, 10, 100, 1000, 50, 10, 10, 2000, 20 };
+const unsigned long periods[] = { 20, 1, 10, 100, 1000, 50, 10, 10, 2000, 100 };
 
 // Pairing: Choose a channel (0-40) and a transmitter identity (0-254) to prevent collisions with nearby remotes or other LoRa devices
 

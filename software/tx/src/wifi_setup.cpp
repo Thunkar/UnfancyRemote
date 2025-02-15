@@ -7,52 +7,6 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Captive Portal</title>
-</head>
-<body>
-  <p >throttle: <span id="state">%THROTTLE%</span></p>
-  <p >cal: <span id="cal">%CAL%</span></p>
-  <button id="button">Save</button>
-</body>
-<script>
-  var gateway = `ws://${window.location.hostname}/ws`;
-  var websocket;
-  window.addEventListener('load', onLoad);
-  function initWebSocket() {
-    console.log('Trying to open a WebSocket connection...');
-    websocket = new WebSocket(gateway);
-    websocket.onopen    = onOpen;
-    websocket.onclose   = onClose;
-    websocket.onmessage = onMessage; // <-- add this line
-  }
-  function onOpen(event) {
-    console.log('Connection opened');
-  }
-  function onClose(event) {
-    console.log('Connection closed');
-    setTimeout(initWebSocket, 2000);
-  }
-  function onMessage(event) {
-    const [type, data] = event.data.split("->");
-    if(type === "throttle") {
-      document.getElementById('state').innerHTML = data;
-    } else {
-      document.getElementById('cal').innerHTML = data;
-    }
-  }
-  function onLoad(event) {
-    initWebSocket();
-    document.getElementById('button').addEventListener('click', () => websocket.send('save'));
-  }
-</script
-</html>
-)rawliteral";
-
-
 class CaptivePortalHandler : public AsyncWebHandler {
 public:
   CaptivePortalHandler() {}
@@ -115,7 +69,6 @@ void setupServer(){
 
 bool doServerWork(unsigned long now) {
   dnsServer.processNextRequest();
-  ws.textAll("throttle->" + String(state.rawThrottleValue));
-  ws.textAll("cal->" + String(config.centerAcc));
+  ws.textAll();
   return true;
 }

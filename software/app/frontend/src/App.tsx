@@ -50,18 +50,18 @@ function App() {
   const data = lastMessage?.data.split(",") ?? [];
 
   const [
-    channel,
-    txIdentity,
+    _channel,
+    _txIdentity,
     remoteVoltage,
     cell_n,
     boardVoltage,
-    throttleRaw,
-    calBrake,
-    calAcc,
-    centerAcc,
-    centerBrake,
-    inverted,
-    isDual,
+    _throttleRaw,
+    _calBrake,
+    _calAcc,
+    _centerAcc,
+    _centerBrake,
+    _inverted,
+    _isDual,
   ] = data;
 
   return (

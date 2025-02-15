@@ -99,6 +99,6 @@ setInterval(() => {
   wss.clients.forEach((client) => {
     client.send(newState);
   });
-}, 20);
+}, 100);
 
 logger.info("Simulator ready");

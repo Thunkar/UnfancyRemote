@@ -1,4 +1,7 @@
+import { LineChart } from "@mui/x-charts/LineChart";
+
 export function Throttle({ value }: { value: number }) {
+  console.log(value);
   return (
     <LineChart
       xAxis={[{ data: [1, 2, 3, 5, 8, 10] }]}
