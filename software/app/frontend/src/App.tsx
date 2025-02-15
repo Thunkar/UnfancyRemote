@@ -1,9 +1,13 @@
 import { css } from "@emotion/react";
-import { Typography } from "@mui/material";
+import { Box, Tab, Tabs, Typography } from "@mui/material";
+import TabContext from "@mui/lab/TabContext";
+import TabList from "@mui/lab/TabList";
+import TabPanel from "@mui/lab/TabPanel";
 import { slant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { Battery } from "./components/battery";
+import { useState } from "react";
 
 const container = css({
   display: "flex",
@@ -17,11 +21,11 @@ function App() {
   const asciiTextRef = useAsciiText({
     animationCharacters: "▒░█",
     animationCharacterSpacing: 1,
-    animationDelay: 2000,
+    animationDelay: 0,
     animationDirection: "down",
-    animationInterval: 100,
+    animationInterval: 0,
     animationLoop: false,
-    animationSpeed: 30,
+    animationSpeed: 40,
     fadeInOnly: true,
     font: slant,
     text: "!Fancy",
@@ -64,22 +68,38 @@ function App() {
     _isDual,
   ] = data;
 
+  const [tab, setTab] = useState("0");
+
   return (
     <div css={container}>
       <pre css={{ color: colors.primary }} ref={refCallback}></pre>
       <Typography variant="subtitle1">
         Connection status: {connectionStatus}
       </Typography>
-      <Battery
-        title="Remote"
-        cells={1}
-        voltage={remoteVoltage ? parseFloat(remoteVoltage) : -1}
-      ></Battery>
-      <Battery
-        title="Board"
-        cells={cell_n}
-        voltage={boardVoltage ? parseFloat(boardVoltage) : -1}
-      ></Battery>
+      <Box sx={{ width: "100%" }}>
+        <TabContext value={tab}>
+          <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+            <TabList
+              onChange={(_event, tab) => setTab(tab)}
+              aria-label="lab API tabs example"
+            >
+              <Tab label="Telemetry" value="0" />
+            </TabList>
+          </Box>
+          <TabPanel sx={{ padding: "0.1rem" }} value="0">
+            <Battery
+              title="Remote"
+              cells={1}
+              voltage={remoteVoltage ? parseFloat(remoteVoltage) : -1}
+            ></Battery>
+            <Battery
+              title="Board"
+              cells={cell_n}
+              voltage={boardVoltage ? parseFloat(boardVoltage) : -1}
+            ></Battery>
+          </TabPanel>
+        </TabContext>
+      </Box>
     </div>
   );
 }

@@ -15,6 +15,7 @@ unsigned int currentTransmitCycles = 0;
 unsigned int maxWaitForTransmit = 20;
 int resetTMCounter = 0;
 
+unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
 void resetTM() {
   state.currentSNR = -100;
@@ -43,9 +44,9 @@ void processTMPacket() {
     measuredRSSI = LT.readPacketRSSI();      
     measuredSNR = LT.readPacketSNR();
     
-    if(TXIdentity != RXIdentity) {
+    if(config.TXIdentity != RXIdentity) {
       char reason[50];
-      sprintf(reason, "Incorrect identity %3d", TXIdentity);
+      sprintf(reason, "Incorrect identity %3d", config.TXIdentity);
       setError(reason);
     }
   } else {
@@ -60,7 +61,7 @@ void processTMPacket() {
     state.currentSNR = measuredSNR;
     state.currentRSSI = measuredRSSI;
     state.boardVoltage = receivedValue/1000.0;
-    state.boardCellVoltage = state.boardVoltage/float(BOARD_CELL_S);
+    state.boardCellVoltage = state.boardVoltage/float(config.nCells);
   } 
 }
 
@@ -147,7 +148,7 @@ bool sendThrottlePacket(unsigned long now) {
   }
   
   LT.startWriteSXBuffer(0);                     
-  LT.writeUint8(TXIdentity);                     
+  LT.writeUint8(config.TXIdentity);                     
   LT.writeUint16(state.encodedThrottleValue);  
   LT.writeUint8(requestTM);                      
   LT.endWriteSXBuffer();         

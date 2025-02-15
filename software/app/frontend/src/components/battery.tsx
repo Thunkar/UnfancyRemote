@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { Typography } from "@mui/material";
+import { Divider, Typography } from "@mui/material";
 
 const container = css({
   display: "flex",
@@ -7,17 +7,20 @@ const container = css({
   width: "100%",
   padding: "0.1rem 0.5rem",
   boxSizing: "border-box",
+  margin: "0.1rem 0",
 });
 
 const text = css({
   display: "flex",
-  width: "30%",
+  width: "35%",
   alignContent: "center",
 });
 
 const data = css({
   display: "flex",
   flexDirection: "row",
+  overflow: "hidden",
+  height: "2.25rem",
 });
 
 const squaresContainer = css({
@@ -76,7 +79,9 @@ export function Battery({
     );
   return (
     <div css={container}>
-      <Typography variant="subtitle1">{title}:</Typography>
+      <Typography sx={{ lineHeight: "1.2rem" }} variant="subtitle1">
+        {title}:
+      </Typography>
       <div css={data}>
         <div css={text}>
           <Typography variant="h4">{voltage.toFixed(2)}V</Typography>
@@ -87,6 +92,7 @@ export function Battery({
           ))}
         </div>
       </div>
+      <Divider />
     </div>
   );
 }
