@@ -13,11 +13,21 @@ public:
   virtual ~CaptivePortalHandler() {}
 
   bool canHandle(AsyncWebServerRequest *request){
-    return request->url() == "/";
+    return request->url() == "/" || request->url() == "/settings" || request->url() == "/calibration";
   }
 
   void handleRequest(AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/index.html", String(), false);
+    if (request->url() == "/settings") {
+      String param = request->getParam("param")->value();
+      String value = request->getParam("value")->value();
+      Serial.print(param);
+      Serial.print(" ");
+      Serial.println(value);
+    } else if (request->url() == "/calibration") {
+
+    } else {
+      request->send(SPIFFS, "/index.html", String(), false);
+    }
   }
 };
 

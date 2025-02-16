@@ -80,7 +80,8 @@ export function Battery({
   return (
     <div css={container}>
       <Typography sx={{ lineHeight: "1.2rem" }} variant="subtitle1">
-        {title}:
+        {title}
+        {cells !== 1 ? ` (${cells}s)` : ""}:
       </Typography>
       <div css={data}>
         <div css={text}>

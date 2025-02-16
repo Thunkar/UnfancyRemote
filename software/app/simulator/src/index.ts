@@ -1,12 +1,20 @@
 import { WebSocketServer } from "ws";
 import pino from "pino";
+import { createServer } from "https";
+import express, { Request } from "express";
+import pinoHttp from "pino-http";
 
-const wss = new WebSocketServer({ port: 8080 });
+const app = express();
+const server = createServer(app);
+
+const wss = new WebSocketServer({ server, port: 8080 });
 const logger = pino({
   transport: {
     target: "pino-pretty",
   },
 });
+
+app.use(pinoHttp({ logger }));
 
 const THROTTLE_MIN_MV = 1500;
 const THROTTLE_MAX_MV = 2100;
@@ -103,5 +111,11 @@ setInterval(() => {
     client.send(newState);
   });
 }, 100);
+
+app.post("/settings", (req: Request<{ param: string; value: number }>, res) => {
+  const { param, value } = req.params;
+});
+
+server.listen(8080);
 
 logger.info("Simulator ready");

@@ -125,6 +125,8 @@ function App() {
               aria-label="lab API tabs example"
             >
               <Tab label="Telemetry" value="0" />
+              <Tab label="Settings" value="1" />
+              <Tab label="Calibration" value="2" />
             </TabList>
           </Box>
           <TabPanel sx={{ padding: "0.1rem" }} value="0">
@@ -138,8 +140,10 @@ function App() {
               throttle1Values={throttle1Buffer}
               throttle2Values={throttle2Buffer}
             ></Throttle>
+            <RF channel={channel} txIdentity={txIdentity}></RF>
           </TabPanel>
-          <RF channel={channel} txIdentity={txIdentity}></RF>
+          <TabPanel sx={{ padding: "0.1rem" }} value="1"></TabPanel>
+          <TabPanel sx={{ padding: "0.1rem" }} value="2"></TabPanel>
         </TabContext>
       </Box>
     </div>
