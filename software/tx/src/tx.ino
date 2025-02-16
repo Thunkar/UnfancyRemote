@@ -60,11 +60,11 @@ void calibrate() {
   FastLED.show();
   while(!digitalRead(BUTTON)) {
     config.centerAcc = analogRead(PPM_THR1);
-    #ifdef DUAL_THROTTLE
-    centerBrake = analogRead(THR2);
-    #else
-    Serial.println();
-    #endif
+    if(config.isDual) {
+      config.centerBrake = analogRead(THR2);
+    } else {
+      Serial.println();
+    }
   }
   digitalWrite(MOTOR, HIGH);
   delay(500);
@@ -87,13 +87,15 @@ void calibrate() {
   FastLED.show();
   diff = 0;
   while(!digitalRead(BUTTON)) {
-    #ifdef DUAL_THROTTLE
-    int current = analogRead(THR2);
-    int newDiff = abs((int)centerBrake-(int)current);
-    #else
-    int current = analogRead(PPM_THR1);
-    int newDiff = abs((int)config.centerAcc-(int)current);
-    #endif
+    int current = 0;
+    int newDiff = 0;
+    if(config.isDual) {
+      current = analogRead(THR2);
+      newDiff = abs((int)config.centerBrake-(int)current);
+    } else {
+      current = analogRead(PPM_THR1);
+      newDiff = abs((int)config.centerAcc-(int)current);
+    }
     if(newDiff > diff) {
       config.calBrake = current;
       diff = newDiff;

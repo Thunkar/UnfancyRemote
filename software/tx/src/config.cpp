@@ -1,6 +1,6 @@
 #include "config.h"
 
-Config config { 0, 0, 0, false, 0 };
+Config config { 15, 224, 12, 0, 0, 0, 0, false, true };
 
 void writeUInt(int address, unsigned int number){ 
   EEPROM.write(address, number >> 8);

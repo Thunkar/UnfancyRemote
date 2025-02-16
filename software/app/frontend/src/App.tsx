@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { Box, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Tab, Typography } from "@mui/material";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
@@ -7,7 +7,11 @@ import { slant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { Battery } from "./components/battery";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Throttle } from "./components/throttle";
+import { RF } from "./components/rf";
+
+const MAX_BUFFER_SIZE = 100;
 
 const container = css({
   display: "flex",
@@ -51,22 +55,59 @@ function App() {
     [ReadyState.UNINSTANTIATED]: "Uninstantiated",
   }[readyState];
 
-  const data = lastMessage?.data.split(",") ?? [];
+  const [remoteVoltage, setRemoteVoltage] = useState<number>(-1);
+  const [cellN, setCellN] = useState<number>(-1);
+  const [boardVoltage, setBoardVoltage] = useState<number>(-1);
+  const [throttle1Buffer, setThrottle1Buffer] = useState<number[]>([]);
+  const [throttle2Buffer, setThrottle2Buffer] = useState<number[]>([]);
+  const [channel, setChannel] = useState<number>(-1);
+  const [txIdentity, setTxIdentity] = useState<number>(-1);
 
-  const [
-    _channel,
-    _txIdentity,
-    remoteVoltage,
-    cell_n,
-    boardVoltage,
-    _throttleRaw,
-    _calBrake,
-    _calAcc,
-    _centerAcc,
-    _centerBrake,
-    _inverted,
-    _isDual,
-  ] = data;
+  useEffect(() => {
+    const data = lastMessage?.data.split(",") ?? [];
+
+    const [
+      channelRaw,
+      txIdentityRaw,
+      remoteVoltageRaw,
+      cellNRaw,
+      boardVoltageRaw,
+      throttle1Raw,
+      throttle2Raw,
+      _calBrake,
+      _calAcc,
+      _centerAcc,
+      _centerBrake,
+      _inverted,
+      isDual,
+    ] = data;
+
+    if (throttle1Raw !== undefined) {
+      let newBuffer = [...throttle1Buffer, throttle1Raw];
+      newBuffer =
+        newBuffer.length >= MAX_BUFFER_SIZE
+          ? newBuffer.slice(1, MAX_BUFFER_SIZE)
+          : newBuffer;
+      setThrottle1Buffer(newBuffer);
+    }
+    if (throttle2Raw !== undefined && isDual === "1") {
+      let newBuffer = [...throttle2Buffer, throttle2Raw];
+      newBuffer =
+        newBuffer.length >= MAX_BUFFER_SIZE
+          ? newBuffer.slice(1, MAX_BUFFER_SIZE)
+          : newBuffer;
+      setThrottle2Buffer(newBuffer);
+    }
+    setRemoteVoltage(
+      remoteVoltageRaw !== undefined ? parseFloat(remoteVoltageRaw) : -1
+    );
+    setCellN(cellNRaw !== undefined ? parseInt(cellNRaw) : -1);
+    setBoardVoltage(
+      boardVoltageRaw !== undefined ? parseFloat(boardVoltageRaw) : -1
+    );
+    setChannel(channelRaw !== undefined ? parseInt(channelRaw) : -1);
+    setTxIdentity(txIdentityRaw !== undefined ? parseInt(txIdentityRaw) : -1);
+  }, [lastMessage]);
 
   const [tab, setTab] = useState("0");
 
@@ -87,17 +128,18 @@ function App() {
             </TabList>
           </Box>
           <TabPanel sx={{ padding: "0.1rem" }} value="0">
-            <Battery
-              title="Remote"
-              cells={1}
-              voltage={remoteVoltage ? parseFloat(remoteVoltage) : -1}
-            ></Battery>
+            <Battery title="Remote" cells={1} voltage={remoteVoltage}></Battery>
             <Battery
               title="Board"
-              cells={cell_n}
-              voltage={boardVoltage ? parseFloat(boardVoltage) : -1}
+              cells={cellN}
+              voltage={boardVoltage}
             ></Battery>
+            <Throttle
+              throttle1Values={throttle1Buffer}
+              throttle2Values={throttle2Buffer}
+            ></Throttle>
           </TabPanel>
+          <RF channel={channel} txIdentity={txIdentity}></RF>
         </TabContext>
       </Box>
     </div>

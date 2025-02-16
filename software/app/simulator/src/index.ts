@@ -8,8 +8,8 @@ const logger = pino({
   },
 });
 
-const THROTTLE_MIN_MV = 1200;
-const THROTTLE_MAX_MV = 2800;
+const THROTTLE_MIN_MV = 1500;
+const THROTTLE_MAX_MV = 2100;
 let throttleDirection = 5;
 
 const MIN_REMOTE_VOLTAGE = 3.0;
@@ -20,7 +20,8 @@ let cell_n = 12;
 const MIN_BOARD_VOLTAGE = 3.0 * cell_n;
 const MAX_BOARD_VOLTAGE = 4.2 * cell_n;
 
-let throttleRaw = 1500;
+let throttle1Raw = 1500;
+let throttle2Raw = 1500;
 let channel = 15;
 let txIdentity = 224;
 
@@ -48,9 +49,10 @@ function limitDecimals(value: number, decimals = 2) {
 }
 
 function computeState() {
-  throttleRaw += throttleDirection;
+  throttle1Raw += throttleDirection;
+  throttle2Raw -= throttleDirection;
   throttleDirection =
-    throttleRaw >= THROTTLE_MAX_MV || throttleRaw <= THROTTLE_MIN_MV
+    throttle1Raw >= THROTTLE_MAX_MV || throttle1Raw <= THROTTLE_MIN_MV
       ? -throttleDirection
       : throttleDirection;
 
@@ -75,7 +77,8 @@ function computeState() {
     remoteVoltage,
     cell_n,
     boardVoltage,
-    throttleRaw,
+    throttle1Raw,
+    throttle2Raw,
     calBrake,
     calAcc,
     centerAcc,

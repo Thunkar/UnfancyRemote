@@ -8,7 +8,7 @@ CRGB storedLEDColor[] = { CRGB::White, CRGB::White, CRGB::White, CRGB::White };
 long LEDPeriods[] = { -1, -1, -1, -1 };
 int LEDResetCounters[] = { -1, -1, -1, -1 };
 unsigned long lastLEDToggled[] = { 0, 0, 0, 0 };
-int sequenceSpeed = 10;
+int sequenceSpeed = 5;
 bool inSequence = false;
 
 void changeLEDColor(int LEDn, CRGB color) {

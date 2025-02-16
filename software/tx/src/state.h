@@ -6,7 +6,8 @@
 struct State {
     // Throttle value
     unsigned int encodedThrottleValue;
-    unsigned int rawThrottleValue;
+    unsigned int rawThrottle1Value;
+    unsigned int rawThrottle2Value;
     // Button state
     int lastButtonState;  
     // Modes

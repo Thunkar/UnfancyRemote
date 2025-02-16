@@ -28,7 +28,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     data[len] = 0;
     Serial.println(String((char*)data));
     if (strcmp((char*)data, "save") == 0) {
-      config.centerAcc = state.rawThrottleValue;
+      config.centerAcc = state.rawThrottle1Value;
       writeConfig();
     }
   }
@@ -69,6 +69,20 @@ void setupServer(){
 
 bool doServerWork(unsigned long now) {
   dnsServer.processNextRequest();
-  ws.textAll();
+  ws.textAll(
+    config.channel + String(",") + 
+    config.TXIdentity + String(",") + 
+    state.batteryVoltage + String(",") + 
+    config.nCells + String(",") + 
+    state.boardVoltage + String(",") + 
+    state.rawThrottle1Value + String(",") + 
+    state.rawThrottle2Value + String(",") + 
+    config.calBrake + String(",") + 
+    config.calAcc + String(",") + 
+    config.centerAcc + String(",") + 
+    config.centerBrake + String(",") + 
+    config.inverted + String(",") +
+    config.isDual
+  );
   return true;
 }
