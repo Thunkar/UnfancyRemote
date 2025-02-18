@@ -1,20 +1,12 @@
 import { WebSocketServer } from "ws";
-import pino from "pino";
-import { createServer } from "https";
-import express, { Request } from "express";
-import pinoHttp from "pino-http";
-
-const app = express();
-const server = createServer(app);
-
-const wss = new WebSocketServer({ server, port: 8080 });
-const logger = pino({
-  transport: {
-    target: "pino-pretty",
-  },
-});
-
-app.use(pinoHttp({ logger }));
+import { pino } from "pino";
+import { createServer } from "http";
+import express, {
+  type RequestHandler,
+  type Request,
+  type Response,
+} from "express";
+import { pinoHttp } from "pino-http";
 
 const THROTTLE_MIN_MV = 1500;
 const THROTTLE_MAX_MV = 2100;
@@ -23,10 +15,10 @@ let throttleDirection = 5;
 const MIN_REMOTE_VOLTAGE = 3.0;
 const MAX_REMOTE_VOLTAGE = 4.2;
 
-let cell_n = 12;
+let cellN = 12;
 
-const MIN_BOARD_VOLTAGE = 3.0 * cell_n;
-const MAX_BOARD_VOLTAGE = 4.2 * cell_n;
+const MIN_BOARD_VOLTAGE = 3.0 * cellN;
+const MAX_BOARD_VOLTAGE = 4.2 * cellN;
 
 let throttle1Raw = 1500;
 let throttle2Raw = 1500;
@@ -73,7 +65,7 @@ function computeState() {
   );
   boardVoltage = limitDecimals(
     constrain(
-      addNoise(boardVoltage, 0.8, 0.1 * cell_n),
+      addNoise(boardVoltage, 0.8, 0.1 * cellN),
       MIN_BOARD_VOLTAGE,
       MAX_BOARD_VOLTAGE
     )
@@ -83,7 +75,7 @@ function computeState() {
     channel,
     txIdentity,
     remoteVoltage,
-    cell_n,
+    cellN,
     boardVoltage,
     throttle1Raw,
     throttle2Raw,
@@ -96,26 +88,55 @@ function computeState() {
   ];
 }
 
-wss.on("connection", (ws) => {
-  ws.on("error", logger.error);
-
-  ws.on("message", function message(data) {
-    console.log("received: %s", data);
+async function main() {
+  const logger = pino({
+    transport: {
+      target: "pino-pretty",
+    },
   });
-});
 
-setInterval(() => {
-  const newState = computeState().join(",");
-  logger.info(`New state: ${newState}`);
-  wss.clients.forEach((client) => {
-    client.send(newState);
+  const app = express();
+  app.use(pinoHttp({ logger }));
+  app.get(
+    "/settings",
+    (
+      req: Request<
+        any,
+        any,
+        {
+          param: "channel" | "txIdentity" | "cellN" | "isDual";
+          value: number;
+        }
+      >,
+      res: Response
+    ) => {
+      const { param, value } = req.query;
+      logger.info(`${param}:${value}`);
+      res.status(200).send("Ok");
+    }
+  );
+
+  const server = createServer(app);
+  const wss = new WebSocketServer({ server });
+
+  wss.on("connection", (ws) => {
+    ws.on("error", logger.error);
+
+    ws.on("message", function message(data) {
+      console.log("received: %s", data);
+    });
   });
-}, 100);
 
-app.post("/settings", (req: Request<{ param: string; value: number }>, res) => {
-  const { param, value } = req.params;
-});
+  await server.listen(8080);
 
-server.listen(8080);
+  logger.info("Server listening on port 8080");
 
-logger.info("Simulator ready");
+  setInterval(() => {
+    const newState = computeState().join(",");
+    wss.clients.forEach((client) => {
+      client.send(newState);
+    });
+  }, 100);
+}
+
+main();

@@ -10,6 +10,7 @@ import { Battery } from "./components/battery";
 import { useEffect, useState } from "react";
 import { Throttle } from "./components/throttle";
 import { RF } from "./components/rf";
+import { Settings } from "./components/settings";
 
 const MAX_BUFFER_SIZE = 100;
 
@@ -44,7 +45,11 @@ function App() {
   };
 
   const { lastMessage, readyState } = useWebSocket(
-    import.meta.env.VITE_WS_URL ?? `ws://${window.location.hostname}/ws`
+    import.meta.env.VITE_WS_URL ?? `ws://${window.location.hostname}`,
+    {
+      reconnectAttempts: 10,
+      reconnectInterval: 3000,
+    }
   );
 
   const connectionStatus = {
@@ -142,7 +147,9 @@ function App() {
             ></Throttle>
             <RF channel={channel} txIdentity={txIdentity}></RF>
           </TabPanel>
-          <TabPanel sx={{ padding: "0.1rem" }} value="1"></TabPanel>
+          <TabPanel sx={{ padding: "0.1rem" }} value="1">
+            <Settings cellN={cellN} channel={channel} txIdentity={txIdentity} />
+          </TabPanel>
           <TabPanel sx={{ padding: "0.1rem" }} value="2"></TabPanel>
         </TabContext>
       </Box>
