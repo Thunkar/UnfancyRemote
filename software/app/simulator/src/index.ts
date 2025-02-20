@@ -1,12 +1,9 @@
 import { WebSocketServer } from "ws";
 import { pino } from "pino";
 import { createServer } from "http";
-import express, {
-  type RequestHandler,
-  type Request,
-  type Response,
-} from "express";
+import express, { type Request, type Response, json } from "express";
 import { pinoHttp } from "pino-http";
+import cors from "cors";
 
 const THROTTLE_MIN_MV = 1500;
 const THROTTLE_MAX_MV = 2100;
@@ -96,22 +93,14 @@ async function main() {
   });
 
   const app = express();
+  app.use(cors());
+  app.use(json());
   app.use(pinoHttp({ logger }));
-  app.get(
+  app.post(
     "/settings",
-    (
-      req: Request<
-        any,
-        any,
-        {
-          param: "channel" | "txIdentity" | "cellN" | "isDual";
-          value: number;
-        }
-      >,
-      res: Response
-    ) => {
-      const { param, value } = req.query;
-      logger.info(`${param}:${value}`);
+    (req: Request<any, { nCells: number }, any>, res: Response) => {
+      const { nCells } = req.body;
+      logger.info(`nCels: ${nCells}`);
       res.status(200).send("Ok");
     }
   );

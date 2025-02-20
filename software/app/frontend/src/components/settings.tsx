@@ -1,4 +1,5 @@
 import { Box, Button, Input, TextField } from "@mui/material";
+import { useState } from "react";
 
 export function Settings({
   cellN,
@@ -9,24 +10,35 @@ export function Settings({
   txIdentity: number;
   channel: number;
 }) {
-  const handleChange = async (param: string, value: number) => {
+  const [currentNCells, setCurrentNCells] = useState<number>(cellN);
+
+  const handleChange = async () => {
     const url = new URL(
-      import.meta.env.VITE_WS_URL ??
-        `http://${window.location.hostname}/settings`
+      import.meta.env.VITE_HTTP_URL
+        ? `${import.meta.env.VITE_HTTP_URL}/settings`
+        : `http://${window.location.hostname}/settings`
     );
 
-    url.search = new URLSearchParams({
-      param,
-      value: value.toString(),
-    }).toString();
-
-    await fetch(url);
+    await fetch(url, {
+      method: "POST",
+      body: JSON.stringify({ nCells: currentNCells }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   };
 
   return (
     <Box sx={{ padding: "0.5rem" }}>
-      <TextField value={cellN} fullWidth label="# of cells" />
-      <Button variant="outlined">Update</Button>
+      <TextField
+        value={currentNCells}
+        onChange={(event) => setCurrentNCells(parseInt(event.target.value))}
+        fullWidth
+        label="# of cells"
+      />
+      <Button variant="outlined" onClick={() => handleChange()}>
+        Update
+      </Button>
     </Box>
   );
 }

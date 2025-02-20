@@ -16,13 +16,12 @@ public:
     return request->url() == "/" || request->url() == "/settings" || request->url() == "/calibration";
   }
 
-  void handleRequest(AsyncWebServerRequest *request) {
+  void handleRequest(AsyncWebServerRequest *request, JsonVariant &json) {
     if (request->url() == "/settings") {
-      String param = request->getParam("param")->value();
-      String value = request->getParam("value")->value();
-      Serial.print(param);
-      Serial.print(" ");
+      serializeJson(json, Serial);
+      unsigned int value = json.as<unsigned int>()["calCenter"];
       Serial.println(value);
+      request->send(200, "text/plain", "Ok");
     } else if (request->url() == "/calibration") {
 
     } else {

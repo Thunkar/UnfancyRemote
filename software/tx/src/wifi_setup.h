@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <ArduinoJson.h>
 #include "ESPAsyncWebServer.h"
 #include <DNSServer.h>
 #include "SPIFFS.h"

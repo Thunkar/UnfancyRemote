@@ -7,7 +7,7 @@ import { slant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { Battery } from "./components/battery";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Throttle } from "./components/throttle";
 import { RF } from "./components/rf";
 import { Settings } from "./components/settings";
@@ -21,6 +21,8 @@ const container = css({
   height: "100%",
   alignItems: "center",
 });
+
+const MemoizedSettings = memo(Settings);
 
 function App() {
   const asciiTextRef = useAsciiText({
@@ -103,15 +105,21 @@ function App() {
           : newBuffer;
       setThrottle2Buffer(newBuffer);
     }
-    setRemoteVoltage(
-      remoteVoltageRaw !== undefined ? parseFloat(remoteVoltageRaw) : -1
-    );
-    setCellN(cellNRaw !== undefined ? parseInt(cellNRaw) : -1);
+    if (cellNRaw !== undefined && parseInt(cellNRaw) !== cellN) {
+      setCellN(parseInt(cellNRaw));
+    }
+    if (channelRaw !== undefined && parseInt(channelRaw) !== channel) {
+      setChannel(parseInt(channelRaw));
+    }
+    if (txIdentityRaw !== undefined && parseInt(txIdentityRaw) !== txIdentity) {
+      setTxIdentity(parseInt(txIdentityRaw));
+    }
     setBoardVoltage(
       boardVoltageRaw !== undefined ? parseFloat(boardVoltageRaw) : -1
     );
-    setChannel(channelRaw !== undefined ? parseInt(channelRaw) : -1);
-    setTxIdentity(txIdentityRaw !== undefined ? parseInt(txIdentityRaw) : -1);
+    setRemoteVoltage(
+      remoteVoltageRaw !== undefined ? parseFloat(remoteVoltageRaw) : -1
+    );
   }, [lastMessage]);
 
   const [tab, setTab] = useState("0");
@@ -148,7 +156,11 @@ function App() {
             <RF channel={channel} txIdentity={txIdentity}></RF>
           </TabPanel>
           <TabPanel sx={{ padding: "0.1rem" }} value="1">
-            <Settings cellN={cellN} channel={channel} txIdentity={txIdentity} />
+            <MemoizedSettings
+              cellN={cellN}
+              channel={channel}
+              txIdentity={txIdentity}
+            />
           </TabPanel>
           <TabPanel sx={{ padding: "0.1rem" }} value="2"></TabPanel>
         </TabContext>
