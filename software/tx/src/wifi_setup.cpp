@@ -8,16 +8,29 @@ AsyncWebSocket ws("/");
 
 static AsyncCallbackJsonWebHandler *settingsHandler = new AsyncCallbackJsonWebHandler("/settings");
 void configureSettingsHandler() {
-  settingsHandler->setMethod(HTTP_POST);
+  settingsHandler->setMethod(HTTP_POST | HTTP_GET);
   settingsHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
+    if(request->method() == HTTP_POST) {
       unsigned int nCells = json.as<JsonObject>()["nCells"];
       unsigned int txIdentity = json.as<JsonObject>()["txIdentity"];
       unsigned int channel = json.as<JsonObject>()["channel"];
+      bool isDual = json.as<JsonObject>()["isDual"];
       config.nCells = nCells;
       config.TXIdentity = txIdentity;
       config.channel = channel;
+      config.isDual = isDual;
       writeConfig();
       request->send(200, "text/plain", "Ok");
+    } else {
+      AsyncJsonResponse *response = new AsyncJsonResponse();
+      JsonObject root = response->getRoot().to<JsonObject>();
+      root["nCells"] = config.nCells;
+      root["txIdentity"] = config.TXIdentity;
+      root["channel"] = config.channel;
+      root["isDual"] = config.isDual;
+      response->setLength();
+      request->send(response);
+    }
   });
 
 }
@@ -88,19 +101,10 @@ void setupServer(){
 bool doServerWork(unsigned long now) {
   dnsServer.processNextRequest();
   ws.textAll(
-    config.channel + String(",") + 
-    config.TXIdentity + String(",") + 
     state.batteryVoltage + String(",") + 
-    config.nCells + String(",") + 
     state.boardVoltage + String(",") + 
     state.rawThrottle1Value + String(",") + 
-    state.rawThrottle2Value + String(",") + 
-    config.calBrake + String(",") + 
-    config.calAcc + String(",") + 
-    config.centerAcc + String(",") + 
-    config.centerBrake + String(",") + 
-    config.inverted + String(",") +
-    config.isDual
+    state.rawThrottle2Value + String(",")
   );
   return true;
 }

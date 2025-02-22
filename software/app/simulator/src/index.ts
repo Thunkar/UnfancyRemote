@@ -7,7 +7,8 @@ import cors from "cors";
 
 const THROTTLE_MIN_MV = 1500;
 const THROTTLE_MAX_MV = 2100;
-let throttleDirection = 5;
+let throttle1Direction = 5;
+let throttle2Direction = 5;
 
 const MIN_REMOTE_VOLTAGE = 3.0;
 const MAX_REMOTE_VOLTAGE = 4.2;
@@ -17,10 +18,12 @@ let nCells = 12;
 const MIN_BOARD_VOLTAGE = 3.0 * nCells;
 const MAX_BOARD_VOLTAGE = 4.2 * nCells;
 
-let throttle1Raw = 1500;
-let throttle2Raw = 1500;
+let throttle1Raw = THROTTLE_MIN_MV;
+let throttle2Raw = THROTTLE_MAX_MV - 1;
+
 let channel = 15;
 let txIdentity = 224;
+let isDual = 0;
 
 let remoteVoltage = 3.8;
 let boardVoltage = 3.8 * 12;
@@ -30,7 +33,6 @@ let calAcc = 0;
 let centerAcc = 0;
 let centerBrake = 0;
 let inverted = 0;
-let isDual = 0;
 
 function constrain(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -46,12 +48,16 @@ function limitDecimals(value: number, decimals = 2) {
 }
 
 function computeState() {
-  throttle1Raw += throttleDirection;
-  throttle2Raw -= throttleDirection;
-  throttleDirection =
+  throttle1Raw += throttle1Direction;
+  throttle2Raw += throttle2Direction;
+  throttle1Direction =
     throttle1Raw >= THROTTLE_MAX_MV || throttle1Raw <= THROTTLE_MIN_MV
-      ? -throttleDirection
-      : throttleDirection;
+      ? -throttle1Direction
+      : throttle1Direction;
+  throttle2Direction =
+    throttle2Raw >= THROTTLE_MAX_MV || throttle2Raw <= THROTTLE_MIN_MV
+      ? -throttle2Direction
+      : throttle2Direction;
 
   remoteVoltage = limitDecimals(
     constrain(
@@ -68,21 +74,7 @@ function computeState() {
     )
   );
 
-  return [
-    channel,
-    txIdentity,
-    remoteVoltage,
-    nCells,
-    boardVoltage,
-    throttle1Raw,
-    throttle2Raw,
-    calBrake,
-    calAcc,
-    centerAcc,
-    centerBrake,
-    inverted,
-    isDual,
-  ];
+  return [remoteVoltage, boardVoltage, throttle1Raw, throttle2Raw];
 }
 
 async function main() {
@@ -95,14 +87,29 @@ async function main() {
   const app = express();
   app.use(cors());
   app.use(json());
-  app.use(pinoHttp({ logger }));
+  app.use(
+    pinoHttp({
+      logger,
+      serializers: {
+        req(req) {
+          return { body: req.raw.body };
+        },
+      },
+    })
+  );
+
   app.post(
     "/settings",
     (
       req: Request<
         any,
-        { nCells: number; txIdentitiy: number; channel: number },
-        any
+        any,
+        {
+          nCells: number;
+          txIdentity: number;
+          channel: number;
+          isDual: number;
+        }
       >,
       res: Response
     ) => {
@@ -110,13 +117,66 @@ async function main() {
         nCells: newNCells,
         txIdentity: newTxIdentity,
         channel: newChannel,
+        isDual: newIsDual,
       } = req.body;
       nCells = newNCells;
       txIdentity = newTxIdentity;
       channel = newChannel;
+      isDual = newIsDual;
       res.status(200).send("Ok");
     }
   );
+
+  app.get("/settings", (req: Request, res: Response) => {
+    res.status(200).json({
+      nCells,
+      txIdentity,
+      channel,
+      isDual,
+    });
+  });
+
+  app.post(
+    "/calibration",
+    (
+      req: Request<
+        any,
+        any,
+        {
+          calBrake: number;
+          calAcc: number;
+          centerBrake: number;
+          centerAcc: number;
+          inverted: number;
+        }
+      >,
+      res: Response
+    ) => {
+      const {
+        calBrake: newCalBrake,
+        calAcc: newCalAcc,
+        centerBrake: newCenterBrake,
+        centerAcc: newCenterAcc,
+        inverted: newInverted,
+      } = req.body;
+      calBrake = newCalBrake;
+      calAcc = newCalAcc;
+      centerBrake = newCenterBrake;
+      centerAcc = newCenterAcc;
+      inverted = newInverted;
+      res.status(200).send("Ok");
+    }
+  );
+
+  app.get("/calibration", (req: Request, res: Response) => {
+    res.status(200).json({
+      calBrake,
+      calAcc,
+      centerBrake,
+      centerAcc,
+      inverted,
+    });
+  });
 
   const server = createServer(app);
   const wss = new WebSocketServer({ server });

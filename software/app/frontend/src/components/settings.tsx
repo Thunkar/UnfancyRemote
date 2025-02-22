@@ -1,37 +1,29 @@
-import { Box, Button, TextField } from "@mui/material";
-import { useState } from "react";
+import {
+  Box,
+  Button,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
+import { useContext, useState } from "react";
+import { DataContext } from "../utils/context";
 
-export function Settings({
-  cellN,
-  txIdentity,
-  channel,
-}: {
-  cellN: number;
-  txIdentity: number;
-  channel: number;
-}) {
+export function Settings() {
+  const { cellN, txIdentity, channel, isDual, storeSettings } =
+    useContext(DataContext);
+
   const [currentNCells, setCurrentNCells] = useState<number>(cellN);
   const [currentTxIdentity, setCurrentTxIdentity] =
     useState<number>(txIdentity);
   const [currentChannel, setCurrentChannel] = useState<number>(channel);
+  const [currentIsDual, setCurrentIsDual] = useState<boolean>(isDual);
 
   const handleChange = async () => {
-    const url = new URL(
-      import.meta.env.VITE_HTTP_URL
-        ? `${import.meta.env.VITE_HTTP_URL}/settings`
-        : `http://${window.location.hostname}/settings`
-    );
-
-    await fetch(url, {
-      method: "POST",
-      body: JSON.stringify({
-        nCells: currentNCells,
-        txIdentity: currentTxIdentity,
-        channel: currentChannel,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+    storeSettings({
+      nCells: currentNCells,
+      txIdentity: currentTxIdentity,
+      channel: currentChannel,
+      isDual: currentIsDual,
     });
   };
 
@@ -43,6 +35,7 @@ export function Settings({
         flexDirection: "column",
         justifyContent: "center",
         gap: "1rem",
+        justifySelf: "flex-start",
       }}
     >
       <TextField
@@ -63,6 +56,15 @@ export function Settings({
         fullWidth
         label="Channel"
       />
+      <ToggleButtonGroup
+        value={currentIsDual}
+        exclusive
+        onChange={() => setCurrentIsDual(!currentIsDual)}
+        aria-label="text alignment"
+      >
+        <ToggleButton value={true}>Dual throttle</ToggleButton>
+        <ToggleButton value={false}>Single throttle</ToggleButton>
+      </ToggleButtonGroup>
       <Button variant="outlined" onClick={() => handleChange()}>
         Update
       </Button>

@@ -196,7 +196,7 @@ void loop() {
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
-  EEPROM.begin(16);
+  EEPROM.begin(18);
   readConfig();
   readCalibration();
   FastLED.addLeds<WS2812B, LED, GRB>(LEDColor, LEDS_LENGTH);

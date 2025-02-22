@@ -1,28 +1,40 @@
-import { css } from "@emotion/react";
 import { Box, Tab, Typography } from "@mui/material";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
 import { slant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
-import useWebSocket, { ReadyState } from "react-use-websocket";
 import { Battery } from "./components/battery";
-import { memo, useEffect, useState } from "react";
+import { ReactNode, useContext, useState } from "react";
 import { Throttle } from "./components/throttle";
 import { RF } from "./components/rf";
 import { Settings } from "./components/settings";
+import { DataContext } from "./utils/context";
+import { Calibration } from "./components/calibration";
 
-const MAX_BUFFER_SIZE = 100;
-
-const container = css({
-  display: "flex",
-  flexDirection: "column",
-  width: "100%",
-  height: "100%",
-  alignItems: "center",
-});
-
-const MemoizedSettings = memo(Settings);
+function CustomTabPanel({
+  children,
+  value,
+  currentTab,
+}: {
+  children: ReactNode;
+  value: string;
+  currentTab: string;
+}) {
+  return (
+    <TabPanel
+      sx={{
+        flexGrow: currentTab === value ? 1 : 0,
+        padding: "0.1rem",
+        display: "flex",
+        flexDirection: "column",
+      }}
+      value={value}
+    >
+      {children}
+    </TabPanel>
+  );
+}
 
 function App() {
   const asciiTextRef = useAsciiText({
@@ -46,91 +58,33 @@ function App() {
     }
   };
 
-  const { lastMessage, readyState } = useWebSocket(
-    import.meta.env.VITE_WS_URL ?? `ws://${window.location.hostname}`,
-    {
-      reconnectAttempts: 10,
-      reconnectInterval: 3000,
-    }
-  );
-
-  const connectionStatus = {
-    [ReadyState.CONNECTING]: "Connecting",
-    [ReadyState.OPEN]: "Open",
-    [ReadyState.CLOSING]: "Closing",
-    [ReadyState.CLOSED]: "Closed",
-    [ReadyState.UNINSTANTIATED]: "Uninstantiated",
-  }[readyState];
-
-  const [remoteVoltage, setRemoteVoltage] = useState<number>(-1);
-  const [cellN, setCellN] = useState<number>(-1);
-  const [boardVoltage, setBoardVoltage] = useState<number>(-1);
-  const [throttle1Buffer, setThrottle1Buffer] = useState<number[]>([]);
-  const [throttle2Buffer, setThrottle2Buffer] = useState<number[]>([]);
-  const [channel, setChannel] = useState<number>(-1);
-  const [txIdentity, setTxIdentity] = useState<number>(-1);
-
-  useEffect(() => {
-    const data = lastMessage?.data.split(",") ?? [];
-
-    const [
-      channelRaw,
-      txIdentityRaw,
-      remoteVoltageRaw,
-      cellNRaw,
-      boardVoltageRaw,
-      throttle1Raw,
-      throttle2Raw,
-      _calBrake,
-      _calAcc,
-      _centerAcc,
-      _centerBrake,
-      _inverted,
-      isDual,
-    ] = data;
-
-    if (throttle1Raw !== undefined) {
-      let newBuffer = [...throttle1Buffer, throttle1Raw];
-      newBuffer =
-        newBuffer.length >= MAX_BUFFER_SIZE
-          ? newBuffer.slice(1, MAX_BUFFER_SIZE)
-          : newBuffer;
-      setThrottle1Buffer(newBuffer);
-    }
-    if (throttle2Raw !== undefined && isDual === "1") {
-      let newBuffer = [...throttle2Buffer, throttle2Raw];
-      newBuffer =
-        newBuffer.length >= MAX_BUFFER_SIZE
-          ? newBuffer.slice(1, MAX_BUFFER_SIZE)
-          : newBuffer;
-      setThrottle2Buffer(newBuffer);
-    }
-    if (cellNRaw !== undefined && parseInt(cellNRaw) !== cellN) {
-      setCellN(parseInt(cellNRaw));
-    }
-    if (channelRaw !== undefined && parseInt(channelRaw) !== channel) {
-      setChannel(parseInt(channelRaw));
-    }
-    if (txIdentityRaw !== undefined && parseInt(txIdentityRaw) !== txIdentity) {
-      setTxIdentity(parseInt(txIdentityRaw));
-    }
-    setBoardVoltage(
-      boardVoltageRaw !== undefined ? parseFloat(boardVoltageRaw) : -1
-    );
-    setRemoteVoltage(
-      remoteVoltageRaw !== undefined ? parseFloat(remoteVoltageRaw) : -1
-    );
-  }, [lastMessage]);
-
   const [tab, setTab] = useState("0");
 
+  const {
+    remoteVoltage,
+    boardVoltage,
+    throttle1Buffer,
+    throttle2Buffer,
+    channel,
+    txIdentity,
+    websocketStatus,
+    cellN,
+  } = useContext(DataContext);
+
   return (
-    <div css={container}>
+    <>
       <pre css={{ color: colors.primary }} ref={refCallback}></pre>
       <Typography variant="subtitle1">
-        Connection status: {connectionStatus}
+        Connection status: {websocketStatus}
       </Typography>
-      <Box sx={{ width: "100%" }}>
+      <Box
+        sx={{
+          width: "100%",
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <TabContext value={tab}>
           <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
             <TabList
@@ -142,7 +96,7 @@ function App() {
               <Tab label="Calibration" value="2" />
             </TabList>
           </Box>
-          <TabPanel sx={{ padding: "0.1rem" }} value="0">
+          <CustomTabPanel value="0" currentTab={tab}>
             <Battery title="Remote" cells={1} voltage={remoteVoltage}></Battery>
             <Battery
               title="Board"
@@ -154,18 +108,16 @@ function App() {
               throttle2Values={throttle2Buffer}
             ></Throttle>
             <RF channel={channel} txIdentity={txIdentity}></RF>
-          </TabPanel>
-          <TabPanel sx={{ padding: "0.1rem" }} value="1">
-            <MemoizedSettings
-              cellN={cellN}
-              channel={channel}
-              txIdentity={txIdentity}
-            />
-          </TabPanel>
-          <TabPanel sx={{ padding: "0.1rem" }} value="2"></TabPanel>
+          </CustomTabPanel>
+          <CustomTabPanel value="1" currentTab={tab}>
+            <Settings />
+          </CustomTabPanel>
+          <CustomTabPanel value="2" currentTab={tab}>
+            <Calibration />
+          </CustomTabPanel>
         </TabContext>
       </Box>
-    </div>
+    </>
   );
 }
 

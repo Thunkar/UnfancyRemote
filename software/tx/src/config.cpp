@@ -15,6 +15,7 @@ void readConfig() {
   config.channel = readUInt(10);
   config.TXIdentity = readUInt(12);
   config.nCells = readUInt(14);
+  config.isDual = readUInt(16);
 }
 
 void readCalibration() {

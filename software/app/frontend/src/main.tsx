@@ -8,6 +8,7 @@ import {
   ThemeOptions,
   ThemeProvider,
 } from "@mui/material";
+import { DataContextContainer } from "./utils/context.tsx";
 
 export const colors = {
   primary: "#ffd217",
@@ -32,7 +33,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <App />
+      <DataContextContainer>
+        <App />
+      </DataContextContainer>
     </ThemeProvider>
   </StrictMode>
 );
