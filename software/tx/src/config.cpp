@@ -12,6 +12,12 @@ unsigned int readUInt(int address) {
 }
 
 void readConfig() {
+  config.channel = readUInt(10);
+  config.TXIdentity = readUInt(12);
+  config.nCells = readUInt(14);
+}
+
+void readCalibration() {
   config.centerAcc = readUInt(0);
   config.calAcc = readUInt(2);
   config.calBrake = readUInt(4);
@@ -19,11 +25,18 @@ void readConfig() {
   config.centerBrake = readUInt(8);
 }
 
-void writeConfig() {
+void writeCalibration() {
   writeUInt(0, config.centerAcc);
   writeUInt(2, config.calAcc);
   writeUInt(4, config.calBrake);
   writeUInt(6, config.inverted);
   writeUInt(8, config.centerBrake);
+  EEPROM.commit();
+}
+
+void writeConfig() {
+  writeUInt(10, config.channel);
+  writeUInt(12, config.TXIdentity);
+  writeUInt(14, config.nCells);
   EEPROM.commit();
 }

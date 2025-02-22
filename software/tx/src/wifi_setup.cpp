@@ -4,8 +4,23 @@ const char* accessPointName = "Unfance Remote AP";
 
 DNSServer dnsServer;
 AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
+AsyncWebSocket ws("/");
 
+static AsyncCallbackJsonWebHandler *settingsHandler = new AsyncCallbackJsonWebHandler("/settings");
+void configureSettingsHandler() {
+  settingsHandler->setMethod(HTTP_POST);
+  settingsHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
+      unsigned int nCells = json.as<JsonObject>()["nCells"];
+      unsigned int txIdentity = json.as<JsonObject>()["txIdentity"];
+      unsigned int channel = json.as<JsonObject>()["channel"];
+      config.nCells = nCells;
+      config.TXIdentity = txIdentity;
+      config.channel = channel;
+      writeConfig();
+      request->send(200, "text/plain", "Ok");
+  });
+
+}
 
 class CaptivePortalHandler : public AsyncWebHandler {
 public:
@@ -13,20 +28,11 @@ public:
   virtual ~CaptivePortalHandler() {}
 
   bool canHandle(AsyncWebServerRequest *request){
-    return request->url() == "/" || request->url() == "/settings" || request->url() == "/calibration";
+    return request->url() == "/" && request->method() == HTTP_GET;
   }
 
-  void handleRequest(AsyncWebServerRequest *request, JsonVariant &json) {
-    if (request->url() == "/settings") {
-      serializeJson(json, Serial);
-      unsigned int value = json.as<unsigned int>()["calCenter"];
-      Serial.println(value);
-      request->send(200, "text/plain", "Ok");
-    } else if (request->url() == "/calibration") {
-
-    } else {
-      request->send(SPIFFS, "/index.html", String(), false);
-    }
+  void handleRequest(AsyncWebServerRequest *request) {
+    request->send(SPIFFS, "/index.html", String(), false);
   }
 };
 
@@ -66,9 +72,12 @@ void setupServer(){
   dnsServer.setTTL(300);
   dnsServer.start(53, "*", WiFi.softAPIP());
 
+  configureSettingsHandler();
+
   ws.onEvent(onEvent);
   server.addHandler(&ws);
   server.addHandler(new CaptivePortalHandler()).setFilter(ON_AP_FILTER);
+  server.addHandler(settingsHandler);
   server.onNotFound([&](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false);
   });

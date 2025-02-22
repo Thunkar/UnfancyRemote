@@ -12,10 +12,10 @@ let throttleDirection = 5;
 const MIN_REMOTE_VOLTAGE = 3.0;
 const MAX_REMOTE_VOLTAGE = 4.2;
 
-let cellN = 12;
+let nCells = 12;
 
-const MIN_BOARD_VOLTAGE = 3.0 * cellN;
-const MAX_BOARD_VOLTAGE = 4.2 * cellN;
+const MIN_BOARD_VOLTAGE = 3.0 * nCells;
+const MAX_BOARD_VOLTAGE = 4.2 * nCells;
 
 let throttle1Raw = 1500;
 let throttle2Raw = 1500;
@@ -62,7 +62,7 @@ function computeState() {
   );
   boardVoltage = limitDecimals(
     constrain(
-      addNoise(boardVoltage, 0.8, 0.1 * cellN),
+      addNoise(boardVoltage, 0.8, 0.1 * nCells),
       MIN_BOARD_VOLTAGE,
       MAX_BOARD_VOLTAGE
     )
@@ -72,7 +72,7 @@ function computeState() {
     channel,
     txIdentity,
     remoteVoltage,
-    cellN,
+    nCells,
     boardVoltage,
     throttle1Raw,
     throttle2Raw,
@@ -98,9 +98,22 @@ async function main() {
   app.use(pinoHttp({ logger }));
   app.post(
     "/settings",
-    (req: Request<any, { nCells: number }, any>, res: Response) => {
-      const { nCells } = req.body;
-      logger.info(`nCels: ${nCells}`);
+    (
+      req: Request<
+        any,
+        { nCells: number; txIdentitiy: number; channel: number },
+        any
+      >,
+      res: Response
+    ) => {
+      const {
+        nCells: newNCells,
+        txIdentity: newTxIdentity,
+        channel: newChannel,
+      } = req.body;
+      nCells = newNCells;
+      txIdentity = newTxIdentity;
+      channel = newChannel;
       res.status(200).send("Ok");
     }
   );

@@ -18,4 +18,6 @@ struct Config {
 extern Config config;
 
 void readConfig();
+void readCalibration();
 void writeConfig();
+void writeCalibration();
