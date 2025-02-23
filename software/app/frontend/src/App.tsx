@@ -2,7 +2,7 @@ import { Box, Tab, Typography } from "@mui/material";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
-import { slant, useAsciiText } from "react-ascii-text";
+import { smallSlant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
 import { Battery } from "./components/battery";
 import { ReactNode, useContext, useState } from "react";
@@ -47,7 +47,7 @@ function App() {
     animationLoop: false,
     animationSpeed: 40,
     fadeInOnly: true,
-    font: slant,
+    font: smallSlant,
     text: "!Fancy",
   });
 
@@ -81,7 +81,10 @@ function App() {
 
   return (
     <>
-      <pre css={{ color: colors.primary }} ref={refCallback}></pre>
+      <pre
+        css={{ color: colors.primary, padding: 0, margin: 0 }}
+        ref={refCallback}
+      ></pre>
       <Typography variant="subtitle1">
         Connection status: {websocketStatus}
       </Typography>

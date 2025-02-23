@@ -12,7 +12,7 @@ const container = css({
 
 const text = css({
   display: "flex",
-  width: "35%",
+  width: "30%",
   alignContent: "center",
 });
 
@@ -20,7 +20,7 @@ const data = css({
   display: "flex",
   flexDirection: "row",
   overflow: "hidden",
-  height: "2.25rem",
+  height: "2rem",
 });
 
 const squaresContainer = css({
@@ -85,7 +85,7 @@ export function Battery({
       </Typography>
       <div css={data}>
         <div css={text}>
-          <Typography variant="h4">{voltage.toFixed(2)}V</Typography>
+          <Typography variant="h5">{voltage.toFixed(2)}V</Typography>
         </div>
         <div css={squaresContainer}>
           {levels.map((level, index) => (

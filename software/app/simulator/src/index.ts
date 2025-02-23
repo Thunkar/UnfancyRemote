@@ -92,13 +92,13 @@ function computeState() {
   if (isDual) {
     const throttle1 = constrain(
       throttle1Raw,
-      Math.min(centerAcc, calAcc),
-      Math.max(centerAcc, calAcc)
+      Math.min(centerAcc, calAcc) + 1,
+      Math.max(centerAcc, calAcc) - 1
     );
     const throttle2 = constrain(
       throttle2Raw,
-      Math.min(centerBrake, calBrake),
-      Math.max(centerBrake, calBrake)
+      Math.min(centerBrake, calBrake) + 1,
+      Math.max(centerBrake, calBrake) - 1
     );
 
     const isBraking = Math.abs(throttle2 - centerBrake) > BRAKE_SENSITIVITY;
@@ -125,8 +125,8 @@ function computeState() {
   } else {
     const throttle1 = constrain(
       throttle1Raw,
-      Math.min(calBrake, calAcc),
-      Math.max(calBrake, calAcc)
+      Math.min(calBrake, calAcc) + 1,
+      Math.max(calBrake, calAcc) - 1
     );
     const scaledValue =
       throttle1 > centerAcc
@@ -281,7 +281,7 @@ async function main() {
     wss.clients.forEach((client) => {
       client.send(newState);
     });
-  }, 100);
+  }, 50);
 }
 
 main();

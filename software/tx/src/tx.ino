@@ -25,8 +25,6 @@ unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 
 #define DEBUG
-//#define CALIBRATION
-
 
 void ONSequence() {
     for(int i = LEDS_LENGTH-1; i > -1; i--) {

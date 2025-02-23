@@ -61,7 +61,7 @@ void processTMPacket() {
     state.currentSNR = measuredSNR;
     state.currentRSSI = measuredRSSI;
     state.boardVoltage = receivedValue/1000.0;
-    state.boardCellVoltage = state.boardVoltage/float(config.nCells);
+    state.boardCellVoltage = state.boardVoltage/float(config.cellN);
   } 
 }
 
