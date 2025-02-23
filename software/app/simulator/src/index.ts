@@ -5,6 +5,10 @@ import express, { type Request, type Response, json } from "express";
 import { pinoHttp } from "pino-http";
 import cors from "cors";
 
+const ENCODED_MAX = 65535;
+const ENCODED_HALF = 32768;
+const BRAKE_SENSITIVITY = 5;
+
 const THROTTLE_MIN_MV = 1500;
 const THROTTLE_MAX_MV = 2100;
 let throttle1Direction = 5;
@@ -13,25 +17,27 @@ let throttle2Direction = 5;
 const MIN_REMOTE_VOLTAGE = 3.0;
 const MAX_REMOTE_VOLTAGE = 4.2;
 
-let nCells = 12;
+let cellN = 12;
 
-const MIN_BOARD_VOLTAGE = 3.0 * nCells;
-const MAX_BOARD_VOLTAGE = 4.2 * nCells;
+const MIN_BOARD_VOLTAGE = 3.0 * cellN;
+const MAX_BOARD_VOLTAGE = 4.2 * cellN;
 
 let throttle1Raw = THROTTLE_MIN_MV;
 let throttle2Raw = THROTTLE_MAX_MV - 1;
 
+let encodedThrottle = 0;
+
 let channel = 15;
 let txIdentity = 224;
-let isDual = 0;
+let isDual = 1;
 
 let remoteVoltage = 3.8;
 let boardVoltage = 3.8 * 12;
 
-let calBrake = 0;
-let calAcc = 0;
-let centerAcc = 0;
-let centerBrake = 0;
+let calAcc = THROTTLE_MAX_MV - 2;
+let calBrake = THROTTLE_MAX_MV - 2;
+let centerAcc = (THROTTLE_MAX_MV + THROTTLE_MIN_MV) / 2;
+let centerBrake = (THROTTLE_MAX_MV + THROTTLE_MIN_MV) / 2;
 let inverted = 0;
 
 function constrain(value: number, min: number, max: number) {
@@ -47,6 +53,15 @@ function limitDecimals(value: number, decimals = 2) {
   return parseFloat(value.toFixed(decimals));
 }
 
+function mapRange(
+  value: number,
+  fromLow: number,
+  fromHigh: number,
+  toLow: number,
+  toHigh: number
+) {
+  return ((value - fromLow) * (toHigh - toLow)) / (fromHigh - fromLow) + toLow;
+}
 function computeState() {
   throttle1Raw += throttle1Direction;
   throttle2Raw += throttle2Direction;
@@ -68,13 +83,77 @@ function computeState() {
   );
   boardVoltage = limitDecimals(
     constrain(
-      addNoise(boardVoltage, 0.8, 0.1 * nCells),
+      addNoise(boardVoltage, 0.8, 0.1 * cellN),
       MIN_BOARD_VOLTAGE,
       MAX_BOARD_VOLTAGE
     )
   );
 
-  return [remoteVoltage, boardVoltage, throttle1Raw, throttle2Raw];
+  if (isDual) {
+    const throttle1 = constrain(
+      throttle1Raw,
+      Math.min(centerAcc, calAcc),
+      Math.max(centerAcc, calAcc)
+    );
+    const throttle2 = constrain(
+      throttle2Raw,
+      Math.min(centerBrake, calBrake),
+      Math.max(centerBrake, calBrake)
+    );
+
+    const isBraking = Math.abs(throttle2 - centerBrake) > BRAKE_SENSITIVITY;
+
+    if (isBraking) {
+      encodedThrottle =
+        throttle2 > centerBrake
+          ? ENCODED_HALF -
+            mapRange(throttle2, centerBrake, calBrake, 0, ENCODED_HALF)
+          : mapRange(throttle2, calBrake, centerBrake, 0, ENCODED_HALF);
+    } else {
+      encodedThrottle =
+        throttle1 > centerAcc
+          ? mapRange(throttle1, centerAcc, calAcc, ENCODED_HALF, ENCODED_MAX)
+          : ENCODED_HALF -
+            mapRange(
+              throttle1,
+              calAcc,
+              centerAcc,
+              ENCODED_HALF + 1,
+              ENCODED_MAX
+            );
+    }
+  } else {
+    const throttle1 = constrain(
+      throttle1Raw,
+      Math.min(calBrake, calAcc),
+      Math.max(calBrake, calAcc)
+    );
+    const scaledValue =
+      throttle1 > centerAcc
+        ? mapRange(
+            throttle1,
+            centerAcc,
+            Math.max(calBrake, calAcc),
+            ENCODED_HALF,
+            ENCODED_MAX
+          )
+        : mapRange(
+            throttle1,
+            Math.min(calBrake, calAcc),
+            centerAcc,
+            0,
+            ENCODED_HALF
+          );
+    encodedThrottle = inverted ? ENCODED_MAX - scaledValue : scaledValue;
+  }
+
+  return [
+    remoteVoltage,
+    boardVoltage,
+    throttle1Raw,
+    throttle2Raw,
+    encodedThrottle,
+  ];
 }
 
 async function main() {
@@ -92,7 +171,11 @@ async function main() {
       logger,
       serializers: {
         req(req) {
-          return { body: req.raw.body };
+          return {
+            body: req.raw.body,
+            url: req.raw.url,
+            method: req.raw.method,
+          };
         },
       },
     })
@@ -105,7 +188,7 @@ async function main() {
         any,
         any,
         {
-          nCells: number;
+          cellN: number;
           txIdentity: number;
           channel: number;
           isDual: number;
@@ -114,12 +197,12 @@ async function main() {
       res: Response
     ) => {
       const {
-        nCells: newNCells,
+        cellN: newCellN,
         txIdentity: newTxIdentity,
         channel: newChannel,
         isDual: newIsDual,
       } = req.body;
-      nCells = newNCells;
+      cellN = newCellN;
       txIdentity = newTxIdentity;
       channel = newChannel;
       isDual = newIsDual;
@@ -129,7 +212,7 @@ async function main() {
 
   app.get("/settings", (req: Request, res: Response) => {
     res.status(200).json({
-      nCells,
+      cellN,
       txIdentity,
       channel,
       isDual,

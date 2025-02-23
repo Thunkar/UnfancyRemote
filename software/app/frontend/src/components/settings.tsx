@@ -5,22 +5,42 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { DataContext } from "../utils/context";
 
 export function Settings() {
   const { cellN, txIdentity, channel, isDual, storeSettings } =
     useContext(DataContext);
 
-  const [currentNCells, setCurrentNCells] = useState<number>(cellN);
+  const [currentCellN, setCurrentCellN] = useState<number>(cellN);
   const [currentTxIdentity, setCurrentTxIdentity] =
     useState<number>(txIdentity);
   const [currentChannel, setCurrentChannel] = useState<number>(channel);
   const [currentIsDual, setCurrentIsDual] = useState<boolean>(isDual);
 
+  const [dirty, setDirty] = useState<boolean>(false);
+
+  useEffect(() => {
+    const isDirty =
+      cellN !== currentCellN ||
+      txIdentity !== currentTxIdentity ||
+      channel !== currentChannel ||
+      isDual !== currentIsDual;
+    setDirty(isDirty);
+  }, [
+    cellN,
+    txIdentity,
+    channel,
+    isDual,
+    currentChannel,
+    currentIsDual,
+    currentCellN,
+    currentTxIdentity,
+  ]);
+
   const handleChange = async () => {
     storeSettings({
-      nCells: currentNCells,
+      cellN: currentCellN,
       txIdentity: currentTxIdentity,
       channel: currentChannel,
       isDual: currentIsDual,
@@ -39,8 +59,8 @@ export function Settings() {
       }}
     >
       <TextField
-        value={currentNCells}
-        onChange={(event) => setCurrentNCells(parseInt(event.target.value))}
+        value={currentCellN}
+        onChange={(event) => setCurrentCellN(parseInt(event.target.value))}
         fullWidth
         label="# of cells"
       />
@@ -60,12 +80,16 @@ export function Settings() {
         value={currentIsDual}
         exclusive
         onChange={() => setCurrentIsDual(!currentIsDual)}
-        aria-label="text alignment"
+        fullWidth
       >
         <ToggleButton value={true}>Dual throttle</ToggleButton>
         <ToggleButton value={false}>Single throttle</ToggleButton>
       </ToggleButtonGroup>
-      <Button variant="outlined" onClick={() => handleChange()}>
+      <Button
+        variant="outlined"
+        disabled={!dirty}
+        onClick={() => handleChange()}
+      >
         Update
       </Button>
     </Box>

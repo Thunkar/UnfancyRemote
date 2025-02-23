@@ -93,7 +93,7 @@ export function Battery({
           ))}
         </div>
       </div>
-      <Divider />
+      <Divider sx={{ margin: "0.5rem 0" }} />
     </div>
   );
 }

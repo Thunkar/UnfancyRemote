@@ -55,62 +55,6 @@ void ONSequence() {
     }
 }
 
-void calibrate() {
-  LEDColor[3] = CRGB::White;
-  FastLED.show();
-  while(!digitalRead(BUTTON)) {
-    config.centerAcc = analogRead(PPM_THR1);
-    if(config.isDual) {
-      config.centerBrake = analogRead(THR2);
-    } else {
-      Serial.println();
-    }
-  }
-  digitalWrite(MOTOR, HIGH);
-  delay(500);
-  digitalWrite(MOTOR, LOW);
-  LEDColor[2] = CRGB::White;
-  FastLED.show();
-  int diff = 0;
-  while(!digitalRead(BUTTON)) {
-    unsigned int current = analogRead(PPM_THR1);
-    int newDiff = abs((int)config.centerAcc-(int)current);
-    if(newDiff > diff) {
-      config.calAcc = current;
-      diff = newDiff;
-    }
-  }
-  digitalWrite(MOTOR, HIGH);
-  delay(500);
-  digitalWrite(MOTOR, LOW);
-  LEDColor[1] = CRGB::White;
-  FastLED.show();
-  diff = 0;
-  while(!digitalRead(BUTTON)) {
-    int current = 0;
-    int newDiff = 0;
-    if(config.isDual) {
-      current = analogRead(THR2);
-      newDiff = abs((int)config.centerBrake-(int)current);
-    } else {
-      current = analogRead(PPM_THR1);
-      newDiff = abs((int)config.centerAcc-(int)current);
-    }
-    if(newDiff > diff) {
-      config.calBrake = current;
-      diff = newDiff;
-    }
-  }
-  config.inverted = config.calAcc < config.calBrake;
-  digitalWrite(MOTOR, HIGH);
-  delay(500);
-  digitalWrite(MOTOR, LOW);
-  for(int i = 0; i < LEDS_LENGTH; i++) {
-    LEDColor[i] = CRGB::Black;
-    FastLED.show();
-  }
-}
-
 bool printStats(unsigned long now) {
   #ifdef DEBUG
   if(state.errors > 0) {

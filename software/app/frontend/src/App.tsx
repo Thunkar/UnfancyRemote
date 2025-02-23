@@ -6,11 +6,12 @@ import { slant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
 import { Battery } from "./components/battery";
 import { ReactNode, useContext, useState } from "react";
-import { Throttle } from "./components/throttle";
+import { ThrottleRaw } from "./components/throttleRaw";
 import { RF } from "./components/rf";
 import { Settings } from "./components/settings";
 import { DataContext } from "./utils/context";
 import { Calibration } from "./components/calibration";
+import { Throttle } from "./components/throttle";
 
 function CustomTabPanel({
   children,
@@ -63,12 +64,19 @@ function App() {
   const {
     remoteVoltage,
     boardVoltage,
+    encodedThrottle,
     throttle1Buffer,
     throttle2Buffer,
     channel,
     txIdentity,
     websocketStatus,
     cellN,
+    isDual,
+    calAcc,
+    calBrake,
+    centerAcc,
+    centerBrake,
+    inverted,
   } = useContext(DataContext);
 
   return (
@@ -103,9 +111,18 @@ function App() {
               cells={cellN}
               voltage={boardVoltage}
             ></Battery>
-            <Throttle
+            <ThrottleRaw
               throttle1Values={throttle1Buffer}
               throttle2Values={throttle2Buffer}
+            ></ThrottleRaw>
+            <Throttle
+              throttle={encodedThrottle}
+              calAcc={calAcc}
+              calBrake={calBrake}
+              centerAcc={centerAcc}
+              centerBrake={centerBrake}
+              inverted={inverted}
+              isDual={isDual}
             ></Throttle>
             <RF channel={channel} txIdentity={txIdentity}></RF>
           </CustomTabPanel>

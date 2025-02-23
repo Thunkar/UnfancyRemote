@@ -1,44 +1,108 @@
-import { Box, Divider, Typography } from "@mui/material";
-import { LineChart } from "@mui/x-charts/LineChart";
+import { css } from "@emotion/react";
+import { Divider, Typography } from "@mui/material";
+import { Box } from "@mui/system";
+
+const ENCODED_MAX = 65535;
+
+const container = css({
+  display: "flex",
+  margin: "0 0.5rem",
+  border: "1px solid",
+  borderColor: "white",
+  borderRadius: "0.5rem",
+  height: "2rem",
+});
 
 export function Throttle({
-  throttle1Values,
-  throttle2Values,
+  throttle,
+  isDual,
+  calAcc,
+  calBrake,
+  centerAcc,
+  centerBrake,
+  inverted,
 }: {
-  throttle1Values: number[];
-  throttle2Values: number[];
+  throttle: number;
+  isDual: boolean;
+  calAcc: number;
+  calBrake: number;
+  centerAcc: number;
+  centerBrake: number;
+  inverted: boolean;
 }) {
+  const percentage = (throttle * 100) / ENCODED_MAX;
+
   return (
     <Box sx={{ padding: "0.5rem" }}>
       <Typography sx={{ margin: "0.1rem" }} variant="subtitle1">
-        Throttle
+        Encoded Throttle
       </Typography>
-      <LineChart
-        skipAnimation
-        series={[
-          {
-            data: throttle1Values,
-            showMark: false,
-            curve: "step",
-            label: "Throttle 1",
-          },
-          {
-            data: throttle2Values,
-            showMark: false,
-            curve: "step",
-            label: "Throttle 2",
-          },
-        ]}
-        yAxis={[
-          { max: 2200, min: 1500 },
-          { max: 2200, min: 1500 },
-        ]}
-        width={400}
-        height={250}
-        margin={{ left: 40, right: 40, top: 10, bottom: 40 }}
-        grid={{ vertical: true, horizontal: true }}
-      />
-      <Divider />
+      <div css={container}>
+        <div
+          css={{
+            left: percentage > 50 ? "50%" : `${percentage}%`,
+            width:
+              percentage > 50 ? `${percentage - 50}%` : `${50 - percentage}%`,
+            backgroundColor: percentage > 50 ? "blue" : "red",
+            borderRadius:
+              percentage > 50 ? "0 0.5rem 0.5rem 0" : "0.5rem 0 0 0.5rem",
+            height: "100%",
+            position: "relative",
+          }}
+        ></div>
+        <div
+          css={{
+            position: "absolute",
+            left: "calc(50% - 1px)",
+            width: "2px",
+            height: "2rem",
+            backgroundColor: "white",
+          }}
+        ></div>
+      </div>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-around",
+          flexDirection: "row",
+          textAlign: "center",
+        }}
+      >
+        <Typography variant="caption">
+          Center throttle:
+          <br />
+          {centerAcc}
+        </Typography>
+        <Divider orientation="vertical" sx={{ height: "2.5rem" }} />
+        <Typography variant="caption">
+          Max throttle:
+          <br />
+          {calAcc}
+        </Typography>
+        <Divider orientation="vertical" sx={{ height: "2.5rem" }} />
+        {isDual && (
+          <Typography variant="caption">
+            Center brake:
+            <br />
+            {centerBrake}
+          </Typography>
+        )}
+        {isDual && <Divider orientation="vertical" sx={{ height: "2.5rem" }} />}
+        <Typography variant="caption">
+          Max brake:
+          <br />
+          {calBrake}
+        </Typography>
+        <Divider orientation="vertical" sx={{ height: "2.5rem" }} />
+        {!isDual && (
+          <Typography variant="caption">
+            Inverted:
+            <br />
+            {inverted ? "Yes" : "No"}
+          </Typography>
+        )}
+      </Box>
+      <Divider sx={{ margin: "0.5rem 0" }} />
     </Box>
   );
 }

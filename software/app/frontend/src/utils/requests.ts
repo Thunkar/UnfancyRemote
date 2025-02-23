@@ -13,7 +13,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
   await fetch(url, {
     method: "POST",
     body: JSON.stringify({
-      nCells: settings.nCells,
+      cellN: settings.cellN,
       txIdentity: settings.txIdentity,
       channel: settings.channel,
       isDual: settings.isDual ? 1 : 0,
@@ -30,7 +30,7 @@ export async function loadSettings(): Promise<Settings> {
   const response = await fetch(url);
   const body = await response.json();
   return {
-    nCells: body.nCells,
+    cellN: body.cellN,
     txIdentity: body.txIdentity,
     channel: body.channel,
     isDual: body.isDual === 1,

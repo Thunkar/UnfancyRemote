@@ -14,7 +14,7 @@ const dualSteps: Step[] = [
   {
     label: "Center",
     description:
-      "Let the throttle and brake triggers return to the center position",
+      "Let the throttle and brake triggers return to the neutral position",
   },
   {
     label: "Calibrate throttle",
@@ -24,16 +24,47 @@ const dualSteps: Step[] = [
     label: "Calibrate brake",
     description: "Press the brake to the maximum position.",
   },
+  {
+    label: "Confirm calibration",
+    description: "Review the values and press save",
+  },
 ];
-const singleSteps: Step[] = [];
+const singleSteps: Step[] = [
+  {
+    label: "Center",
+    description: "Let the throttle return to the neutral position",
+  },
+  {
+    label: "Calibrate throttle",
+    description: "Push the throttle to the maximum position.",
+  },
+  {
+    label: "Calibrate brake",
+    description: "Pull the throttle to the minimum position.",
+  },
+  {
+    label: "Confirm calibration",
+    description: "Review the values and press save",
+  },
+];
 
 export function Calibration() {
-  const { throttle1, throttle2, isDual } = useContext(DataContext);
+  const { throttle1, throttle2, isDual, storeCalibration } =
+    useContext(DataContext);
 
   const [throttle1Max, setThrottle1Max] = useState(0);
   const [throttle2Max, setThrottle2Max] = useState(0);
   const [throttle1Min, setThrottle1Min] = useState(10e3);
   const [throttle2Min, setThrottle2Min] = useState(10e3);
+
+  const [currentCenterAcc, setCurrentCenterAcc] = useState(0);
+  const [currentCenterBrake, setCurrentCenterBrake] = useState(0);
+  const [currentCalAcc, setCurrentCalAcc] = useState(0);
+  const [currentCalBrake, setCurrentCalBrake] = useState(0);
+  const [currentInverted, setCurrentInverted] = useState(false);
+  const [diff, setDiff] = useState(0);
+
+  const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
     if (throttle1 > throttle1Max) {
@@ -48,19 +79,63 @@ export function Calibration() {
     if (throttle2 < throttle2Min) {
       setThrottle2Min(throttle2);
     }
-  }, [throttle1, throttle2]);
+    switch (activeStep) {
+      case 0: {
+        setCurrentCenterAcc(throttle1);
+        setCurrentCenterBrake(throttle2);
+        break;
+      }
+      case 1: {
+        const newDiff = Math.abs(currentCenterAcc - throttle1);
+        if (newDiff > diff) {
+          setCurrentCalAcc(throttle1);
+          setDiff(newDiff);
+        }
+        break;
+      }
+      case 2: {
+        let newDiff;
+        let current;
+        if (isDual) {
+          current = throttle2;
+          newDiff = Math.abs(currentCenterBrake - current);
+        } else {
+          current = throttle1;
+          newDiff = Math.abs(currentCenterAcc - current);
+        }
+        if (newDiff > diff) {
+          setCurrentCalBrake(current);
+          setDiff(newDiff);
+        }
+        break;
+      }
+      case 3: {
+        setCurrentInverted(currentCalAcc < currentCalBrake);
+      }
+    }
+  }, [throttle1, throttle2, activeStep]);
 
   const steps = isDual ? dualSteps : singleSteps;
   const maxSteps = steps.length;
 
-  const [activeStep, setActiveStep] = useState(0);
-
   const handleNext = () => {
+    setDiff(0);
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
   const handleBack = () => {
+    setDiff(0);
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  };
+
+  const handleSave = async () => {
+    await storeCalibration({
+      calBrake: currentCalBrake,
+      calAcc: currentCalAcc,
+      centerAcc: currentCenterAcc,
+      centerBrake: currentCenterBrake,
+      inverted: currentInverted,
+    });
   };
 
   return (
@@ -73,33 +148,36 @@ export function Calibration() {
         flexGrow: 1,
       }}
     >
-      <Box sx={{ width: "100%", p: 2, flexGrow: 1 }}>
+      <Box sx={{ width: "100%", p: "0.5rem", flexGrow: 1 }}>
         <Typography variant="h4" sx={{ mb: "0.5rem" }}>
           {steps[activeStep].label}
         </Typography>
-        <Typography variant="body1">{steps[activeStep].description}</Typography>
-        {isDual ? (
+        <Typography sx={{ height: "2rem" }} variant="body1">
+          {steps[activeStep].description}
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-around",
+            alignItems: "center",
+            margin: "2rem 0",
+          }}
+        >
+          <Typography variant="h3">{throttle1}</Typography>
           <Box
             sx={{
               display: "flex",
-              flexDirection: "row",
-              justifyContent: "space-around",
-              alignItems: "center",
+              flexDirection: "column",
+              justifyContent: "center",
             }}
           >
-            <Typography variant="h3">{throttle1}</Typography>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}
-            >
-              <Typography variant="caption">{throttle1Max} (max)</Typography>
-              <Typography variant="caption">{throttle1Min} (min)</Typography>
-            </Box>
-            <Divider orientation="vertical" sx={{ height: "4rem" }} />
-            <Typography variant="h3">{throttle2}</Typography>
+            <Typography variant="caption">{throttle1Max} (max)</Typography>
+            <Typography variant="caption">{throttle1Min} (min)</Typography>
+          </Box>
+          {isDual && <Divider orientation="vertical" sx={{ height: "4rem" }} />}
+          {isDual && <Typography variant="h3">{throttle2}</Typography>}
+          {isDual && (
             <Box
               sx={{
                 display: "flex",
@@ -110,10 +188,34 @@ export function Calibration() {
               <Typography variant="caption">{throttle2Max} (max)</Typography>
               <Typography variant="caption">{throttle2Min} (min)</Typography>
             </Box>
-          </Box>
-        ) : (
-          <Box></Box>
-        )}
+          )}
+        </Box>
+        <Box>
+          <Typography variant="h4">Calibration values</Typography>
+          <Typography variant="body1">
+            Center throttle: {currentCenterAcc}
+          </Typography>
+          {isDual && (
+            <Typography variant="body1">
+              Center brake: {currentCenterBrake}
+            </Typography>
+          )}
+          <Typography variant="body1">Max throttle: {currentCalAcc}</Typography>
+          <Typography variant="body1">Max brake: {currentCalBrake}</Typography>
+          {!isDual && (
+            <Typography variant="body1">
+              Inverted: {currentInverted ? "Yes" : "No"}
+            </Typography>
+          )}
+        </Box>
+        <Button
+          variant="outlined"
+          disabled={activeStep !== 3}
+          sx={{ width: "100%", mt: "3rem" }}
+          onClick={() => handleSave()}
+        >
+          Save
+        </Button>
       </Box>
       <MobileStepper
         variant="text"

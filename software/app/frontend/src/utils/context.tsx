@@ -10,7 +10,7 @@ import {
 const MAX_BUFFER_SIZE = 100;
 
 export type Settings = {
-  nCells: number;
+  cellN: number;
   txIdentity: number;
   channel: number;
   isDual: boolean;
@@ -30,6 +30,7 @@ export const DataContext = createContext<{
   boardVoltage: number;
   throttle1: number;
   throttle2: number;
+  encodedThrottle: number;
   throttle1Buffer: number[];
   throttle2Buffer: number[];
   channel: number;
@@ -49,6 +50,7 @@ export const DataContext = createContext<{
   boardVoltage: -1,
   throttle1: 0,
   throttle2: 0,
+  encodedThrottle: 0,
   throttle1Buffer: [],
   throttle2Buffer: [],
   channel: -1,
@@ -74,6 +76,7 @@ export const DataContextContainer = function ({
   const [boardVoltage, setBoardVoltage] = useState<number>(-1);
   const [throttle1Buffer, setThrottle1Buffer] = useState<number[]>([]);
   const [throttle2Buffer, setThrottle2Buffer] = useState<number[]>([]);
+  const [encodedThrottle, setEncodedThrottle] = useState<number>(0);
   const [throttle1, setThrottle1] = useState<number>(0);
   const [throttle2, setThrottle2] = useState<number>(0);
   const [channel, setChannel] = useState<number>(-1);
@@ -113,8 +116,13 @@ export const DataContextContainer = function ({
   useEffect(() => {
     const data = lastMessage?.data.split(",") ?? [];
 
-    const [remoteVoltageRaw, boardVoltageRaw, throttle1Raw, throttle2Raw] =
-      data;
+    const [
+      remoteVoltageRaw,
+      boardVoltageRaw,
+      throttle1Raw,
+      throttle2Raw,
+      encodedThrottle,
+    ] = data;
 
     if (throttle1Raw !== undefined) {
       let newBuffer = [...throttle1Buffer, throttle1Raw];
@@ -134,6 +142,11 @@ export const DataContextContainer = function ({
       setThrottle2Buffer(newBuffer);
       setThrottle2(throttle2Raw);
     }
+
+    if (encodedThrottle !== undefined) {
+      setEncodedThrottle(encodedThrottle);
+    }
+
     setBoardVoltage(
       boardVoltageRaw !== undefined ? parseFloat(boardVoltageRaw) : -1
     );
@@ -143,8 +156,8 @@ export const DataContextContainer = function ({
   }, [lastMessage, isDual]);
 
   const reloadSettings = async () => {
-    const { nCells, txIdentity, channel, isDual } = await loadSettings();
-    setCellN(nCells);
+    const { cellN, txIdentity, channel, isDual } = await loadSettings();
+    setCellN(cellN);
     setChannel(channel);
     setTxIdentity(txIdentity);
     setIsDual(isDual);
@@ -163,6 +176,7 @@ export const DataContextContainer = function ({
 
   useEffect(() => {
     reloadSettings();
+    reloadCalibration();
   }, []);
 
   const storeSettings = async (settings: Settings) => {
@@ -176,6 +190,7 @@ export const DataContextContainer = function ({
   };
 
   const initialData = {
+    encodedThrottle,
     remoteVoltage,
     cellN,
     boardVoltage,

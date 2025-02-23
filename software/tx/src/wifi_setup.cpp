@@ -32,8 +32,39 @@ void configureSettingsHandler() {
       request->send(response);
     }
   });
-
 }
+
+static AsyncCallbackJsonWebHandler *calibrationHandler = new AsyncCallbackJsonWebHandler("/calibration");
+void configureCalibrationHandler() {
+  calibrationHandler->setMethod(HTTP_POST | HTTP_GET);
+  calibrationHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
+    if(request->method() == HTTP_POST) {
+      unsigned int calBrake = json.as<JsonObject>()["calBrake"];
+      unsigned int calAcc = json.as<JsonObject>()["calAcc"];
+      unsigned int centerBrake = json.as<JsonObject>()["centerBrake"];
+      unsigned int centerAcc = json.as<JsonObject>()["centerAcc"];
+      bool inverted = json.as<JsonObject>()["inverted"];
+      config.calAcc = calAcc;
+      config.calBrake = calBrake;
+      config.centerAcc = centerAcc;
+      config.centerBrake = centerBrake;
+      config.inverted = inverted;
+      writeCalibration();
+      request->send(200, "text/plain", "Ok");
+    } else {
+      AsyncJsonResponse *response = new AsyncJsonResponse();
+      JsonObject root = response->getRoot().to<JsonObject>();
+      root["calBrake"] = config.calBrake;
+      root["calAcc"] = config.calAcc;
+      root["centerAcc"] = config.centerAcc;
+      root["centerBrake"] = config.centerBrake;
+      root["inverted"] = config.inverted;
+      response->setLength();
+      request->send(response);
+    }
+  });
+}
+
 
 class CaptivePortalHandler : public AsyncWebHandler {
 public:
@@ -86,11 +117,13 @@ void setupServer(){
   dnsServer.start(53, "*", WiFi.softAPIP());
 
   configureSettingsHandler();
+  configureCalibrationHandler();
 
   ws.onEvent(onEvent);
   server.addHandler(&ws);
   server.addHandler(new CaptivePortalHandler()).setFilter(ON_AP_FILTER);
   server.addHandler(settingsHandler);
+  server.addHandler(calibrationHandler);
   server.onNotFound([&](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false);
   });
@@ -104,7 +137,8 @@ bool doServerWork(unsigned long now) {
     state.batteryVoltage + String(",") + 
     state.boardVoltage + String(",") + 
     state.rawThrottle1Value + String(",") + 
-    state.rawThrottle2Value + String(",")
+    state.rawThrottle2Value + String(",") +
+    state.encodedThrottleValue
   );
   return true;
 }
