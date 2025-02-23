@@ -55,6 +55,7 @@ export function Settings() {
         flexDirection: "column",
         justifyContent: "center",
         gap: "1rem",
+        height: "100%",
         justifySelf: "flex-start",
       }}
     >
@@ -87,6 +88,7 @@ export function Settings() {
       </ToggleButtonGroup>
       <Button
         variant="outlined"
+        sx={{ mt: "auto" }}
         disabled={!dirty}
         onClick={() => handleChange()}
       >
