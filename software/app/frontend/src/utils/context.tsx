@@ -42,6 +42,8 @@ export const DataContext = createContext<{
   centerBrake: number;
   inverted: boolean;
   websocketStatus: string;
+  tab: string;
+  setTab: (tab: string) => void;
   storeSettings: (settings: Settings) => Promise<void>;
   storeCalibration: (Calibration: Calibration) => Promise<void>;
 }>({
@@ -62,6 +64,8 @@ export const DataContext = createContext<{
   centerAcc: 0,
   centerBrake: 0,
   inverted: false,
+  tab: "0",
+  setTab: () => {},
   storeSettings: () => Promise.resolve(),
   storeCalibration: () => Promise.resolve(),
 });
@@ -89,6 +93,7 @@ export const DataContextContainer = function ({
   const [inverted, setInverted] = useState<boolean>(false);
   const [websocketStatus, setWebsocketStatus] =
     useState<string>("Uninstantiated");
+  const [tab, setTab] = useState<string>("0");
 
   const [connectWebSocket, setConnectWebSocket] = useState<boolean>(false);
 
@@ -207,6 +212,8 @@ export const DataContextContainer = function ({
     centerBrake,
     inverted,
     websocketStatus,
+    tab,
+    setTab,
     storeSettings,
     storeCalibration,
   };

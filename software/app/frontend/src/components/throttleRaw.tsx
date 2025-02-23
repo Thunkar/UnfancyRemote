@@ -9,8 +9,8 @@ export function ThrottleRaw({
   throttle2Values: number[];
 }) {
   return (
-    <Box sx={{ padding: "0.5rem" }}>
-      <Typography sx={{ margin: "0.1rem" }} variant="subtitle1">
+    <Box sx={{ padding: "0.1rem 0.5rem" }}>
+      <Typography sx={{ margin: "0.1rem" }} variant="subtitle2">
         Raw Throttle
       </Typography>
       <LineChart

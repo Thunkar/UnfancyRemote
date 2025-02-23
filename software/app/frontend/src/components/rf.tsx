@@ -26,10 +26,10 @@ export function RF({
   return (
     <Box
       sx={{
-        padding: "0 0.5rem",
+        padding: "0.1rem 0.5rem",
       }}
     >
-      <Typography sx={{ lineHeight: "1.2rem" }} variant="subtitle1">
+      <Typography sx={{ lineHeight: "1rem" }} variant="subtitle2">
         RF
       </Typography>
       <div css={container}>

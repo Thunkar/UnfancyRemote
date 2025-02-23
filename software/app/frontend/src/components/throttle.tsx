@@ -30,11 +30,12 @@ export function Throttle({
   centerBrake: number;
   inverted: boolean;
 }) {
-  const percentage = (throttle * 100) / ENCODED_MAX;
+  let percentage = (throttle * 100) / ENCODED_MAX;
+  percentage = Math.max(Math.min(percentage, 100), 0);
 
   return (
-    <Box sx={{ padding: "0.5rem" }}>
-      <Typography sx={{ margin: "0.1rem" }} variant="subtitle1">
+    <Box sx={{ padding: "0.1rem 0.5rem" }}>
+      <Typography sx={{ margin: "0.1rem" }} variant="subtitle2">
         Encoded Throttle
       </Typography>
       <div css={container}>

@@ -59,8 +59,6 @@ function App() {
     }
   };
 
-  const [tab, setTab] = useState("0");
-
   const {
     remoteVoltage,
     boardVoltage,
@@ -77,6 +75,8 @@ function App() {
     centerAcc,
     centerBrake,
     inverted,
+    tab,
+    setTab,
   } = useContext(DataContext);
 
   return (
@@ -99,8 +99,8 @@ function App() {
         <TabContext value={tab}>
           <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
             <TabList
+              variant="fullWidth"
               onChange={(_event, tab) => setTab(tab)}
-              aria-label="lab API tabs example"
             >
               <Tab label="Telemetry" value="0" />
               <Tab label="Settings" value="1" />

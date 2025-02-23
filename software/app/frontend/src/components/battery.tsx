@@ -20,7 +20,7 @@ const data = css({
   display: "flex",
   flexDirection: "row",
   overflow: "hidden",
-  height: "2rem",
+  height: "1.5rem",
 });
 
 const squaresContainer = css({
@@ -79,13 +79,13 @@ export function Battery({
     );
   return (
     <div css={container}>
-      <Typography sx={{ lineHeight: "1.2rem" }} variant="subtitle1">
+      <Typography sx={{ lineHeight: "1rem" }} variant="subtitle2">
         {title}
         {cells !== 1 ? ` (${cells}s)` : ""}:
       </Typography>
       <div css={data}>
         <div css={text}>
-          <Typography variant="h5">{voltage.toFixed(2)}V</Typography>
+          <Typography variant="h6">{voltage.toFixed(2)}V</Typography>
         </div>
         <div css={squaresContainer}>
           {levels.map((level, index) => (
