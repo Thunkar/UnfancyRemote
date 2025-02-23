@@ -5,7 +5,7 @@ import TabPanel from "@mui/lab/TabPanel";
 import { smallSlant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
 import { Battery } from "./components/battery";
-import { ReactNode, useContext, useState } from "react";
+import { ReactNode, useContext } from "react";
 import { ThrottleRaw } from "./components/throttleRaw";
 import { RF } from "./components/rf";
 import { Settings } from "./components/settings";
