@@ -1,4 +1,4 @@
-23750434134851411
+23752174951547239
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -96641,6 +96641,13 @@ MODULE_ESP32-C3_SUPERMINI
 0
 16
 16
+unfancyRemote_components
+SolderWirePad_1x01_SMD_1x2mm
+Wire Pad, Square, SMD Pad,  5mm x 10mm,
+MesurementPoint Square SMDPad 5mmx10mm 
+0
+1
+1
 unfancyRemote_components
 SolderWirePad_1x02_SMD_1x2mm
 Wire Pad, Square, SMD Pad,  5mm x 10mm,

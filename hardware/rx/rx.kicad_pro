@@ -37,9 +37,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 0.762,
-          "height": 1.524,
-          "width": 1.524
+          "drill": 0.0,
+          "height": 2.0,
+          "width": 1.0
         },
         "silk_line_width": 0.15,
         "silk_text_italic": false,
@@ -59,14 +59,7 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [
-        "clearance|135150000|83700000|bfd0abb7-08db-45ab-8458-df62f62d4820|70604b77-385a-4ec5-8b77-5c2e3f2d8dbc",
-        "clearance|135550000|79475000|130ff272-7897-4416-8dc7-cac062295828|f0dff41b-ba5c-433c-ad63-aa166b2b5098",
-        "clearance|136200000|79475000|1efcf3bd-796b-406f-9519-3496c9179251|130ff272-7897-4416-8dc7-cac062295828",
-        "clearance|136450000|83700000|14431bc5-5afc-4341-883e-f15397adf7bc|c511bd53-5f27-4a8e-b12c-8ccf1f5959ca",
-        "clearance|136850000|79475000|5d76e17b-711e-4660-bc9b-8f3e5cdaa4b7|1efcf3bd-796b-406f-9519-3496c9179251",
-        "starved_thermal|132320000|78200000|57281514-e0c9-418e-b4ea-ee0d0a783fe1|f63880f1-b7b0-4223-bd07-b6fd31281cec|F.Cu"
-      ],
+      "drc_exclusions": [],
       "meta": {
         "version": 2
       },
