@@ -1,7 +1,7 @@
 (footprint "MODULE_ESP32-C3_SUPERMINI"
-	(version 20240108)
+	(version 20241229)
 	(generator "pcbnew")
-	(generator_version "8.0")
+	(generator_version "9.0")
 	(layer "F.Cu")
 	(property "Reference" "REF**"
 		(at -5.715 -13.6525 0)
@@ -21,18 +21,6 @@
 		(effects
 			(font
 				(size 1 1)
-				(thickness 0.15)
-			)
-		)
-	)
-	(property "Footprint" ""
-		(at 0 0 0)
-		(layer "F.Fab")
-		(hide yes)
-		(uuid "12340487-012d-4d7f-a91f-d90e0e01cab3")
-		(effects
-			(font
-				(size 1.27 1.27)
 				(thickness 0.15)
 			)
 		)
@@ -406,6 +394,7 @@
 		(solder_mask_margin 0.102)
 		(uuid "561f2f3c-32a6-491f-8be0-89d7ac4b5fdf")
 	)
+	(embedded_fonts no)
 	(model "${KIPRJMOD}/../lib/3dmodels/ESP32-C3_SUPERMINI.step"
 		(offset
 			(xyz 0 0 0)
