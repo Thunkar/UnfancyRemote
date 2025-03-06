@@ -5,7 +5,7 @@
 
 // Task periods in ms
 
-const unsigned long periods[] = { 10, 1, 20, 200, 1000, 100, 50, 20, 2000, 50 };
+const unsigned long periods[] = { 20, 1, 10, 200, 1000, 100, 50, 20, 2000, 50 };
 
 // Time in ms to hold the button to enter setup mode
 

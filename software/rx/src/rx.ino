@@ -1,9 +1,9 @@
+#include <Arduino.h>
 #include <SPI.h>
 #include <SX128XLT.h>
 #include "board.h"
 #include "settings.h"
 #include <ProgramLT_Definitions.h>
-#include <Arduino.h>
 #include <ESP32Servo.h> 
 
 Servo PPM;
