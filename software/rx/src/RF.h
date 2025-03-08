@@ -4,7 +4,6 @@
 #include <ProgramLT_Definitions.h>
 #include "board.h"
 #include "state.h"
-#include "settings.h"
 #include "config.h"
 #include "error_handling.h"
 

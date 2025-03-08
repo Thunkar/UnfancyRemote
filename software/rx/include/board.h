@@ -23,9 +23,21 @@ const unsigned long R1 = 100000;
 const unsigned int ENCODED_MAX = 65535;
 const unsigned int ENCODED_HALF = 32768;
 
+const unsigned int ADC_SAMPLES = 5;
+
+// Task periods in ms
+
+const unsigned long periods[] = { 1, 20, 1, 1000, 2000, 50 };
+
+// Time in ms to hold the button to enter setup mode
+
+const int setupModeDelay = 5000; 
+
+
 //*******  Setup LoRa Test Parameters Here ! ***************
 
-
+#define CH_BANDWIDTH_HZ 2500000
+#define BASE_FREQUENCY 2400000000
 #define LORA_DEVICE DEVICE_SX1280    
 #define Offset 0                                 //offset frequency for calibration purposes  
 #define Bandwidth LORA_BW_1600                   //LoRa bandwidth

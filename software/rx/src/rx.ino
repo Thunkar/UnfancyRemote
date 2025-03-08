@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include "board.h"
-#include "settings.h"
 #include "config.h"
 #include "state.h"
 #include "RF.h"
