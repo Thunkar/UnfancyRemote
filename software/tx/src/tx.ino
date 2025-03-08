@@ -4,6 +4,7 @@
 #include "soc/rtc_cntl_reg.h"
 #include "board.h"
 #include "settings.h"
+#include "config.h"
 #include "state.h"
 #include "RF.h"
 #include "mode.h"

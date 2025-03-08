@@ -14,9 +14,13 @@ const int PPM_THR1 = 0;
 const int LED = 8;
 const int VBAT = 2;   
 
+//*******  Setup constants here ! ***************
+
 const unsigned long R2 = 6800;
 const unsigned long R1 = 100000;
 
+const unsigned int ENCODED_MAX = 65535;
+const unsigned int ENCODED_HALF = 32768;
 
 //*******  Setup LoRa Test Parameters Here ! ***************
 

@@ -14,5 +14,5 @@ void IRAM_ATTR processRFInterrupt();
 
 extern unsigned long frequency;
 
-bool receiveTMPacket(unsigned long now);
-bool sendThrottlePacket(unsigned long now);
+bool receiveThrottlePacket(unsigned long now);
+bool sendTMPacket(unsigned long now);

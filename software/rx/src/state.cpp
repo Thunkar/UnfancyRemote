@@ -3,20 +3,12 @@
 State state = { 
     // Throttle value
     ENCODED_HALF, 
-    ENCODED_HALF,
-    ENCODED_HALF,
     // Button state
     LOW,
     // Modes 
-    0, 
-    0, 
-    0, 
-    true, 
     false,
-    // Battery voltages
+    // Battery voltage
     -1.0, 
-    0.0, 
-    0.0, 
     // RF
     true,
     -100, 

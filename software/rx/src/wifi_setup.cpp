@@ -10,53 +10,19 @@ void configureSettingsHandler() {
   settingsHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
     if(request->method() == HTTP_POST) {
       unsigned int cellN = json.as<JsonObject>()["cellN"];
-      unsigned int txIdentity = json.as<JsonObject>()["txIdentity"];
+      unsigned int rxIdentity = json.as<JsonObject>()["rxIdentity"];
       unsigned int channel = json.as<JsonObject>()["channel"];
-      bool isDual = json.as<JsonObject>()["isDual"];
       config.cellN = cellN;
-      config.TXIdentity = txIdentity;
+      config.RXIdentity = rxIdentity;
       config.channel = channel;
-      config.isDual = isDual;
       writeConfig();
       request->send(200, "text/plain", "Ok");
     } else {
       AsyncJsonResponse *response = new AsyncJsonResponse();
       JsonObject root = response->getRoot().to<JsonObject>();
       root["cellN"] = config.cellN;
-      root["txIdentity"] = config.TXIdentity;
+      root["rxIdentity"] = config.RXIdentity;
       root["channel"] = config.channel;
-      root["isDual"] = config.isDual;
-      response->setLength();
-      request->send(response);
-    }
-  });
-}
-
-static AsyncCallbackJsonWebHandler *calibrationHandler = new AsyncCallbackJsonWebHandler("/calibration");
-void configureCalibrationHandler() {
-  calibrationHandler->setMethod(HTTP_POST | HTTP_GET);
-  calibrationHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
-    if(request->method() == HTTP_POST) {
-      unsigned int calBrake = json.as<JsonObject>()["calBrake"];
-      unsigned int calAcc = json.as<JsonObject>()["calAcc"];
-      unsigned int centerBrake = json.as<JsonObject>()["centerBrake"];
-      unsigned int centerAcc = json.as<JsonObject>()["centerAcc"];
-      bool inverted = json.as<JsonObject>()["inverted"];
-      config.calAcc = calAcc;
-      config.calBrake = calBrake;
-      config.centerAcc = centerAcc;
-      config.centerBrake = centerBrake;
-      config.inverted = inverted;
-      writeCalibration();
-      request->send(200, "text/plain", "Ok");
-    } else {
-      AsyncJsonResponse *response = new AsyncJsonResponse();
-      JsonObject root = response->getRoot().to<JsonObject>();
-      root["calBrake"] = config.calBrake;
-      root["calAcc"] = config.calAcc;
-      root["centerAcc"] = config.centerAcc;
-      root["centerBrake"] = config.centerBrake;
-      root["inverted"] = config.inverted;
       response->setLength();
       request->send(response);
     }
@@ -77,6 +43,7 @@ public:
     request->send(SPIFFS, "/index.html", String(), false);
   }
 };
+
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
              void *arg, uint8_t *data, size_t len) {
@@ -100,13 +67,11 @@ void setupServer(){
   dnsServer.start(53, "*", WiFi.softAPIP());
 
   configureSettingsHandler();
-  configureCalibrationHandler();
 
   ws.onEvent(onEvent);
   server.addHandler(&ws);
   server.addHandler(new CaptivePortalHandler()).setFilter(ON_AP_FILTER);
   server.addHandler(settingsHandler);
-  server.addHandler(calibrationHandler);
   server.onNotFound([&](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false);
   });
@@ -117,10 +82,7 @@ void setupServer(){
 bool doServerWork(unsigned long now) {
   dnsServer.processNextRequest();
   ws.textAll(
-    state.batteryVoltage + String(",") + 
     state.boardVoltage + String(",") + 
-    state.rawThrottle1Value + String(",") + 
-    state.rawThrottle2Value + String(",") +
     state.encodedThrottleValue
   );
   return true;
