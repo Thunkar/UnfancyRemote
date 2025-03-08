@@ -7,7 +7,6 @@ bool checkBattery(unsigned long now) {
 
   int scaledBatmVolts = sampleAdc(VBAT);
   
-  float newBatteryVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
-  state.boardVoltage = state.boardVoltage != -1 ? (newBatteryVoltage + state.boardVoltage) / 2 : newBatteryVoltage;
+  state.boardVoltage = (scaledBatmVolts/1000.0)*(R1+R2)/R2;
   return true;
 }

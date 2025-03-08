@@ -2,7 +2,7 @@ import { css } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
-const ENCODED_MAX = 65535;
+const ENCODED_MAX = 4095;
 
 const container = css({
   display: "flex",

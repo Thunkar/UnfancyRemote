@@ -9,3 +9,7 @@ unsigned int sampleAdc(const int pin) {
 
   return (unsigned int)((float)scaledmVolts/(float)ADC_SAMPLES);
 }
+
+unsigned int roundAndCastToInt(float var) {
+    return (int)(var * 100 + .5);
+}

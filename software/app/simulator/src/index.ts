@@ -15,9 +15,9 @@ const argv = await yargs(hideBin(process.argv))
 
 const simMode: "rx" | "tx" = argv.mode === "rx" ? "rx" : "tx";
 
-const ENCODED_MAX = 65535;
-const ENCODED_HALF = 32768;
-const BRAKE_SENSITIVITY = 5;
+const ENCODED_MAX = 4095;
+const ENCODED_HALF = 2048;
+const BRAKE_SENSITIVITY = 10;
 
 const MIN_SNR = -25;
 const MAX_SNR = 15;

@@ -20,8 +20,8 @@ const int VBAT = 1;
 const unsigned long R2 = 6800;
 const unsigned long R1 = 100000;
 
-const unsigned int ENCODED_MAX = 65535;
-const unsigned int ENCODED_HALF = 32768;
+const unsigned int ENCODED_MAX = 4095;
+const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
@@ -46,6 +46,6 @@ const int setupModeDelay = 5000;
 #define CH_BANDWIDTH_HZ 2500000
 #define BASE_FREQUENCY 2400000000
 
-const unsigned int throttlePacketLength = 4;                  //packet length is fixed 
-const unsigned int TMPacketLength = 3;
+const unsigned int throttlePacketLength = 3;                  //packet length is fixed 
+const unsigned int TMPacketLength = 2;
 const unsigned int TXpower = 10;                       //LoRa transmit power in dBm

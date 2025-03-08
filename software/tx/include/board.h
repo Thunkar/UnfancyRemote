@@ -23,8 +23,8 @@ const int THR2 = 1;
 const unsigned long R2 = 6800;
 const unsigned long R1 = 100000;
 
-const unsigned int ENCODED_MAX = 65535;
-const unsigned int ENCODED_HALF = 32768;
+const unsigned int ENCODED_MAX = 4095;
+const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
@@ -51,6 +51,6 @@ const float BOARD_BATTERY_CELL_V_THR[] = { 4.0, 3.8, 3.7, 3.5, 3.3 };
 #define SpreadingFactor LORA_SF7                 //LoRa spreading factor
 #define CodeRate LORA_CR_4_5                     //LoRa coding rate
 
-const unsigned int throttlePacketLength = 4;                  //packet length is fixed 
-const unsigned int TMPacketLength = 3;
+const unsigned int throttlePacketLength = 3;                  //packet length is fixed 
+const unsigned int TMPacketLength = 2;
 const unsigned int TXpower = 10;                       //LoRa transmit power in dBm

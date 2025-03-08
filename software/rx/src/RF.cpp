@@ -8,10 +8,13 @@ bool forceRX = true;
 
 unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
-unsigned int TMRequest = 0;
+bool TMRequest = 0;
 bool waitingForRX = false;
 unsigned int maxWaitForReceive = 250;
 unsigned int currentReceiveCycles = 0;
+
+unsigned int throttleMask = 0xFFF;
+unsigned int TMRequestMask = 0x1000;
 
 void IRAM_ATTR processRFInterrupt() {
   RFAvailable = !digitalRead(RFBUSY);
@@ -25,8 +28,7 @@ void processReceivedPacket() {
     return;
   }                                               
   unsigned int TXIdentity = -1;
-  unsigned int receivedValue = ENCODED_HALF;
-  unsigned int receivedTMRequest = 0;
+  unsigned int receivedData = ENCODED_HALF;
   unsigned int measuredRXPacketLength = LT.readRXPacketL();
   int measuredSNR = 0;
   long measuredRSSI = 0;
@@ -34,8 +36,7 @@ void processReceivedPacket() {
   if(measuredRXPacketLength == throttlePacketLength){
     LT.startReadSXBuffer(0);                
     TXIdentity = LT.readUint8();         
-    receivedValue = LT.readUint16();       
-    receivedTMRequest = LT.readUint8();
+    receivedData = LT.readUint16();     
     LT.endReadSXBuffer(); 
     measuredRSSI = LT.readPacketRSSI();      
     measuredSNR = LT.readPacketSNR(); 
@@ -56,8 +57,8 @@ void processReceivedPacket() {
     state.packets++;
     state.currentSNR = measuredSNR;
     state.currentRSSI = measuredRSSI;
-    state.encodedThrottleValue = receivedValue;
-    TMRequest = receivedTMRequest;
+    state.encodedThrottleValue = (receivedData & throttleMask);
+    TMRequest = (receivedData & TMRequestMask) >> 12;
   }
 }
 
@@ -76,9 +77,10 @@ bool sendTMPacket(unsigned long now) {
   if(!TMRequest || !RFAvailable || !checkTXRXDone()) {
     return false;
   }
-  LT.startWriteSXBuffer(0);                     
-  LT.writeUint8(config.identity);                    
-  LT.writeUint16(state.boardVoltage*1000);                        
+  LT.startWriteSXBuffer(0);             
+  unsigned int boardVoltageAsInt = roundAndCastToInt(state.boardVoltage);
+  unsigned int encodedBoardVoltage = map(boardVoltageAsInt, 0, 420 * config.cellN, 0, 255) << 8;        
+  LT.writeUint16(encodedBoardVoltage+config.identity);                            
   LT.endWriteSXBuffer();   
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
   state.TMPackets++;

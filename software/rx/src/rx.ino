@@ -49,7 +49,7 @@ bool printStats(unsigned long now) {
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
   Serial.print(F("s | VBat: "));
-  Serial.print(state.boardVoltage/1000.0);
+  Serial.print(state.boardVoltage);
   Serial.print(F("V | SNR: "));
   Serial.print(state.currentSNR);
   Serial.print(F("dB | RSSI: "));

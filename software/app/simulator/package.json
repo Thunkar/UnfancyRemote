@@ -4,7 +4,7 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "NODE_NO_WARNINGS=1 node --experimental-transform-types src/index.ts",
+    "dev": "node --experimental-transform-types src/index.ts",
     "dev:tx": "yarn dev --mode tx",
     "dev:rx": "yarn dev --mode rx"
   },

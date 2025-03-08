@@ -7,13 +7,16 @@ bool forceTX = true;
 
 unsigned long TMPeriod = 500;
 unsigned long lastTMPacketReceived = 0;
-unsigned int requestTM = 0;
+bool requestTM = 0;
 bool waitingForRX = false;
 unsigned int maxWaitForTM = 40;
 unsigned int currentTMCycles = 0;
 unsigned int currentTransmitCycles = 0;
 unsigned int maxWaitForTransmit = 20;
 int resetTMCounter = 0;
+
+unsigned int RXIdentityMask = 0xFF;
+unsigned int batteryVoltageMask = 0xFF00;
 
 unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
@@ -32,14 +35,15 @@ void IRAM_ATTR processRFInterrupt() {
 
 void processTMPacket() {    
   unsigned int RXIdentity = -1;
-  unsigned int receivedValue = 0;
+  unsigned int receivedData = 0;
+
   unsigned int measuredRXPacketLength = LT.readRXPacketL();
   int measuredSNR = 0;
   long measuredRSSI = 0;
   if(measuredRXPacketLength == TMPacketLength){
     LT.startReadSXBuffer(0);                
-    RXIdentity = LT.readUint8();         
-    receivedValue = LT.readUint16();       
+    receivedData = LT.readUint16();
+    RXIdentity = receivedData & RXIdentityMask;
     LT.endReadSXBuffer(); 
     measuredRSSI = LT.readPacketRSSI();      
     measuredSNR = LT.readPacketSNR();
@@ -60,7 +64,8 @@ void processTMPacket() {
     resetTMCounter = 0;
     state.currentSNR = measuredSNR;
     state.currentRSSI = measuredRSSI;
-    state.boardVoltage = receivedValue/1000.0;
+    unsigned int decodedBatteryVoltage = (receivedData & batteryVoltageMask) >> 8;
+    state.boardVoltage = map(decodedBatteryVoltage, 0, 255, 0, config.cellN * 420)/100.0;
     state.boardCellVoltage = state.boardVoltage/float(config.cellN);
   } 
 }
@@ -149,9 +154,9 @@ bool sendThrottlePacket(unsigned long now) {
   }
   
   LT.startWriteSXBuffer(0);                     
-  LT.writeUint8(config.identity);                     
-  LT.writeUint16(state.encodedThrottleValue);  
-  LT.writeUint8(requestTM);                      
+  LT.writeUint8(config.identity); 
+  unsigned int encodedData = (requestTM << 12) + state.encodedThrottleValue;                   
+  LT.writeUint16(encodedData);          
   LT.endWriteSXBuffer();         
   forceTX = false;
   currentTransmitCycles = 0;
