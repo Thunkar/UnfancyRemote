@@ -78,7 +78,7 @@ bool sendTMPacket(unsigned long now) {
   }
   LT.startWriteSXBuffer(0);                     
   LT.writeUint8(config.identity);                    
-  LT.writeUint16(state.boardVoltage);                        
+  LT.writeUint16(state.boardVoltage*1000);                        
   LT.endWriteSXBuffer();   
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
   state.TMPackets++;

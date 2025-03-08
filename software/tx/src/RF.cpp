@@ -78,10 +78,6 @@ bool checkRXIRQError() {
 
 bool receiveTMPacket(unsigned long now) {
   clearError();
-  if(!checkRXIRQError()) {
-    setError("IRQ Error");
-    return false;
-  }   
   if(!requestTM) {
     currentTMCycles = 0;
     return false;
@@ -103,6 +99,11 @@ bool receiveTMPacket(unsigned long now) {
     LT.config();
     return false;
   }
+  if(!checkRXIRQError()) {
+    setError("IRQ Error");
+    currentTMCycles++;
+    return false;
+  }   
   if(!checkTXRXDone() || !RFAvailable) {
     currentTMCycles++;
     return false;

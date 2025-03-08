@@ -13,7 +13,7 @@ const int TX_EN = -1;                        //pin for TX enable, used on some S
 const int BUTTON = 3;
 const int PPM = 0;
 const int LED = 8;
-const int VBAT = 2;   
+const int VBAT = 1;   
 
 //*******  Setup constants here ! ***************
 

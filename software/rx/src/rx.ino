@@ -14,7 +14,7 @@
 int LAST_TASK;
 int FIRST_TASK;
 
-char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "printStats" };
+char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "printStats", "doServerWork" };
 long lastRun[] = { 0, 0, 0, 0, 0, 0 };
 long executions[] = { 0, 0, 0, 0, 0, 0 };
 
@@ -24,17 +24,16 @@ long executions[] = { 0, 0, 0, 0, 0, 0 };
 void ONSequence() {
   unsigned long now = millis();
   unsigned long lastCheck = now;
-  digitalWrite(LED, LOW);
+  digitalWrite(LED, HIGH);
   while(digitalRead(BUTTON)){
     state.setupMode = (lastCheck - now) > setupModeDelay;
     lastCheck = millis();
     if(state.setupMode) {
-      digitalWrite(LED, HIGH);
+      digitalWrite(LED, LOW);
       break;
     }
   };
 }
-
 
 
 bool printStats(unsigned long now) {
@@ -107,13 +106,12 @@ void setup() {
   pinMode(PPM, OUTPUT);
   pinMode(BUTTON, INPUT_PULLDOWN);
   pinMode(LED, OUTPUT);
-  pinMode(VBAT, INPUT);
+  pinMode(VBAT, INPUT_PULLDOWN);
   ONSequence();
 
   attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
 
   PPM_OUTPUT.attach(PPM);
-
 
   #ifdef DEBUG
   Serial.begin(115200);

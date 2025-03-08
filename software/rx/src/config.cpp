@@ -12,9 +12,9 @@ unsigned int readUInt(int address) {
 }
 
 void readConfig() {
-  config.channel = readUInt(10);
-  config.identity = readUInt(12);
-  config.cellN = readUInt(14);
+  config.channel = readUInt(0);
+  config.identity = readUInt(2);
+  config.cellN = readUInt(4);
 }
 
 void writeConfig() {

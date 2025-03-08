@@ -2,10 +2,11 @@ import { css } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 
-const MIN_SNR = -25;
 const MAX_SNR = 15;
+const MIN_SNR = -25;
+
+const MAX_RSSI = -13;
 const MIN_RSSI = -100;
-const MAX_RSSI = 100;
 
 function getColor(c1: string, c2: string, ratio: number) {
   const interpolate = (start: number[], end: number[], ratio: number) => {
@@ -16,9 +17,9 @@ function getColor(c1: string, c2: string, ratio: number) {
   };
 
   const hexToRgb = (hex: string) => [
-    parseInt(hex.substr(1, 2), 16),
-    parseInt(hex.substr(3, 2), 16),
-    parseInt(hex.substr(5, 2), 16),
+    parseInt(hex.substring(1, 3), 16),
+    parseInt(hex.substring(3, 5), 16),
+    parseInt(hex.substring(5, 7), 16),
   ];
 
   const rgbToHex = (rgb: number[]) =>
@@ -39,11 +40,11 @@ function SignalBar({ percentage }: { percentage: number }) {
     <div css={container}>
       <div
         css={{
-          top: `${percentage}%`,
-          height: `${100 - percentage}%`,
-          backgroundColor: getColor("#2bff00", "#cc0000", percentage),
+          bottom: 0,
+          height: `${percentage}%`,
+          backgroundColor: getColor("#cc0000", "#2bff00", percentage),
           borderRadius: "0.5rem",
-          position: "relative",
+          position: "absolute",
           width: "100%",
         }}
       ></div>
@@ -52,7 +53,7 @@ function SignalBar({ percentage }: { percentage: number }) {
           position: "absolute",
           top: "calc(50% - 1px)",
           height: "2px",
-          width: "2rem",
+          width: "100%",
           backgroundColor: "white",
         }}
       ></div>
