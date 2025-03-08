@@ -3,7 +3,6 @@
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "board.h"
-#include "settings.h"
 #include "config.h"
 #include "state.h"
 #include "RF.h"
@@ -145,7 +144,7 @@ void setup() {
   FastLED.addLeds<WS2812B, LED, GRB>(LEDColor, LEDS_LENGTH);
   FastLED.setBrightness(128);
   FastLED.show();
-  pinMode(PPM_THR1, INPUT);
+  pinMode(THR1, INPUT);
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
   pinMode(BUTTON, INPUT);
