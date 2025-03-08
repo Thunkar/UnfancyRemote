@@ -10,11 +10,11 @@ void configureSettingsHandler() {
   settingsHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
     if(request->method() == HTTP_POST) {
       unsigned int cellN = json.as<JsonObject>()["cellN"];
-      unsigned int txIdentity = json.as<JsonObject>()["txIdentity"];
+      unsigned int identity = json.as<JsonObject>()["identity"];
       unsigned int channel = json.as<JsonObject>()["channel"];
       bool isDual = json.as<JsonObject>()["isDual"];
       config.cellN = cellN;
-      config.TXIdentity = txIdentity;
+      config.identity = identity;
       config.channel = channel;
       config.isDual = isDual;
       writeConfig();
@@ -23,7 +23,7 @@ void configureSettingsHandler() {
       AsyncJsonResponse *response = new AsyncJsonResponse();
       JsonObject root = response->getRoot().to<JsonObject>();
       root["cellN"] = config.cellN;
-      root["txIdentity"] = config.TXIdentity;
+      root["identity"] = config.identity;
       root["channel"] = config.channel;
       root["isDual"] = config.isDual;
       response->setLength();

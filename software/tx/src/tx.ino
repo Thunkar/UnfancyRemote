@@ -160,7 +160,7 @@ void setup() {
       Serial.println(F("An Error has occurred while mounting SPIFFS"));
       return;
     }
-    WiFi.softAP("Unfancy Remote");
+    WiFi.softAP("Unfancy Remote TX");
     setupServer();
     #ifdef DEBUG
     Serial.println(F("Setup mode"));

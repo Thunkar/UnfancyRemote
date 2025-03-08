@@ -16,3 +16,5 @@ extern unsigned long frequency;
 
 bool receiveThrottlePacket(unsigned long now);
 bool sendTMPacket(unsigned long now);
+bool checkRXIRQError();
+bool checkTXRXDone();

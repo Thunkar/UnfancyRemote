@@ -13,7 +13,7 @@ unsigned int readUInt(int address) {
 
 void readConfig() {
   config.channel = readUInt(10);
-  config.TXIdentity = readUInt(12);
+  config.identity = readUInt(12);
   config.cellN = readUInt(14);
   config.isDual = readUInt(16);
 }
@@ -37,7 +37,7 @@ void writeCalibration() {
 
 void writeConfig() {
   writeUInt(10, config.channel);
-  writeUInt(12, config.TXIdentity);
+  writeUInt(12, config.identity);
   writeUInt(14, config.cellN);
   writeUInt(16, config.isDual);
   EEPROM.commit();

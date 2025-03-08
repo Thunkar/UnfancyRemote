@@ -44,9 +44,9 @@ void processTMPacket() {
     measuredRSSI = LT.readPacketRSSI();      
     measuredSNR = LT.readPacketSNR();
     
-    if(config.TXIdentity != RXIdentity) {
+    if(config.identity != RXIdentity) {
       char reason[50];
-      sprintf(reason, "Incorrect identity %3d", config.TXIdentity);
+      sprintf(reason, "Incorrect identity %3d", config.identity);
       setError(reason);
     }
   } else {
@@ -148,7 +148,7 @@ bool sendThrottlePacket(unsigned long now) {
   }
   
   LT.startWriteSXBuffer(0);                     
-  LT.writeUint8(config.TXIdentity);                     
+  LT.writeUint8(config.identity);                     
   LT.writeUint16(state.encodedThrottleValue);  
   LT.writeUint8(requestTM);                      
   LT.endWriteSXBuffer();         

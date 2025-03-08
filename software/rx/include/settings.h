@@ -6,3 +6,7 @@
 // Task periods in ms
 
 const unsigned long periods[] = { 1, 20, 1, 1000, 2000 };
+
+// Time in ms to hold the button to enter setup mode
+
+const int setupModeDelay = 5000; 

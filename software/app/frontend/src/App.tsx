@@ -1,17 +1,22 @@
-import { Box, Tab, Typography } from "@mui/material";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
+import Tab from "@mui/material/Tab";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import { smallSlant, useAsciiText } from "react-ascii-text";
 import { colors } from "./main";
 import { Battery } from "./components/battery";
 import { ReactNode, useContext } from "react";
 import { ThrottleRaw } from "./components/throttleRaw";
-import { RF } from "./components/rf";
+import { RFData } from "./components/rfData";
 import { Settings } from "./components/settings";
-import { DataContext } from "./utils/context";
+import { BoardType, DataContext } from "./utils/context";
 import { Calibration } from "./components/calibration";
 import { Throttle } from "./components/throttle";
+import { CalibrationData } from "./components/calibrationData";
+import { RF } from "./components/rf";
+import Divider from "@mui/material/Divider";
 
 function CustomTabPanel({
   children,
@@ -60,13 +65,16 @@ function App() {
   };
 
   const {
+    boardType,
     remoteVoltage,
     boardVoltage,
     encodedThrottle,
     throttle1Buffer,
     throttle2Buffer,
     channel,
-    txIdentity,
+    identity,
+    RSSI,
+    SNR,
     websocketStatus,
     cellN,
     isDual,
@@ -86,7 +94,8 @@ function App() {
         ref={refCallback}
       ></pre>
       <Typography variant="subtitle1">
-        Connection status: {websocketStatus}
+        Board is {import.meta.env.VITE_BOARD_TYPE}. Websocket status:{" "}
+        {websocketStatus}
       </Typography>
       <Box
         sx={{
@@ -104,37 +113,68 @@ function App() {
             >
               <Tab label="Telemetry" value="0" />
               <Tab label="Settings" value="1" />
-              <Tab label="Calibration" value="2" />
+              {boardType === BoardType.TX && (
+                <Tab label="Calibration" value="2" />
+              )}
             </TabList>
           </Box>
           <CustomTabPanel value="0" currentTab={tab}>
-            <Battery title="Remote" cells={1} voltage={remoteVoltage}></Battery>
+            {boardType === BoardType.TX && (
+              <>
+                <Battery
+                  title="Remote"
+                  cells={1}
+                  voltage={remoteVoltage}
+                ></Battery>
+                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+              </>
+            )}
             <Battery
               title="Board"
               cells={cellN}
               voltage={boardVoltage}
             ></Battery>
-            <ThrottleRaw
-              throttle1Values={throttle1Buffer}
-              throttle2Values={throttle2Buffer}
-            ></ThrottleRaw>
-            <Throttle
-              throttle={encodedThrottle}
-              calAcc={calAcc}
-              calBrake={calBrake}
-              centerAcc={centerAcc}
-              centerBrake={centerBrake}
-              inverted={inverted}
-              isDual={isDual}
-            ></Throttle>
-            <RF channel={channel} txIdentity={txIdentity}></RF>
+            <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+            {boardType === BoardType.TX && (
+              <>
+                <ThrottleRaw
+                  throttle1Values={throttle1Buffer}
+                  throttle2Values={throttle2Buffer}
+                ></ThrottleRaw>
+                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+              </>
+            )}
+            <Throttle throttle={encodedThrottle}></Throttle>
+            <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+            {boardType === BoardType.TX && (
+              <>
+                <CalibrationData
+                  calAcc={calAcc}
+                  calBrake={calBrake}
+                  centerAcc={centerAcc}
+                  centerBrake={centerBrake}
+                  inverted={inverted}
+                  isDual={isDual}
+                ></CalibrationData>
+                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+              </>
+            )}
+            <RFData channel={channel} identity={identity}></RFData>
+            {boardType === BoardType.RX && (
+              <>
+                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+                <RF SNR={SNR} RSSI={RSSI}></RF>
+              </>
+            )}
           </CustomTabPanel>
           <CustomTabPanel value="1" currentTab={tab}>
             <Settings />
           </CustomTabPanel>
-          <CustomTabPanel value="2" currentTab={tab}>
-            <Calibration />
-          </CustomTabPanel>
+          {boardType === BoardType.TX && (
+            <CustomTabPanel value="2" currentTab={tab}>
+              <Calibration />
+            </CustomTabPanel>
+          )}
         </TabContext>
       </Box>
     </>

@@ -9,9 +9,14 @@ import {
 
 const MAX_BUFFER_SIZE = 100;
 
+export enum BoardType {
+  TX = "TX",
+  RX = "RX",
+}
+
 export type Settings = {
   cellN: number;
-  txIdentity: number;
+  identity: number;
   channel: number;
   isDual: boolean;
 };
@@ -25,6 +30,7 @@ export type Calibration = {
 };
 
 export const DataContext = createContext<{
+  boardType: BoardType;
   remoteVoltage: number;
   cellN: number;
   boardVoltage: number;
@@ -34,7 +40,9 @@ export const DataContext = createContext<{
   throttle1Buffer: number[];
   throttle2Buffer: number[];
   channel: number;
-  txIdentity: number;
+  identity: number;
+  RSSI: number;
+  SNR: number;
   isDual: boolean;
   calBrake: number;
   calAcc: number;
@@ -47,6 +55,7 @@ export const DataContext = createContext<{
   storeSettings: (settings: Settings) => Promise<void>;
   storeCalibration: (Calibration: Calibration) => Promise<void>;
 }>({
+  boardType: BoardType.TX,
   remoteVoltage: -1,
   cellN: -1,
   boardVoltage: -1,
@@ -56,7 +65,9 @@ export const DataContext = createContext<{
   throttle1Buffer: [],
   throttle2Buffer: [],
   channel: -1,
-  txIdentity: -1,
+  identity: -1,
+  RSSI: -100,
+  SNR: -15,
   isDual: false,
   websocketStatus: "Uninstantiated",
   calBrake: 0,
@@ -75,6 +86,9 @@ export const DataContextContainer = function ({
 }: {
   children: ReactNode;
 }) {
+  const [boardType] = useState<BoardType>(
+    import.meta.env.VITE_BOARD_TYPE === "TX" ? BoardType.TX : BoardType.RX
+  );
   const [remoteVoltage, setRemoteVoltage] = useState<number>(-1);
   const [cellN, setCellN] = useState<number>(-1);
   const [boardVoltage, setBoardVoltage] = useState<number>(-1);
@@ -84,7 +98,9 @@ export const DataContextContainer = function ({
   const [throttle1, setThrottle1] = useState<number>(0);
   const [throttle2, setThrottle2] = useState<number>(0);
   const [channel, setChannel] = useState<number>(-1);
-  const [txIdentity, setTxIdentity] = useState<number>(-1);
+  const [RSSI, setRSSI] = useState<number>(0);
+  const [SNR, setSNR] = useState<number>(0);
+  const [identity, setidentity] = useState<number>(-1);
   const [isDual, setIsDual] = useState<boolean>(false);
   const [calBrake, setCalBrake] = useState<number>(0);
   const [calAcc, setCalAcc] = useState<number>(0);
@@ -121,13 +137,26 @@ export const DataContextContainer = function ({
   useEffect(() => {
     const data = lastMessage?.data.split(",") ?? [];
 
-    const [
-      remoteVoltageRaw,
-      boardVoltageRaw,
-      throttle1Raw,
-      throttle2Raw,
-      encodedThrottle,
-    ] = data;
+    let remoteVoltageRaw;
+    let boardVoltageRaw;
+    let throttle1Raw;
+    let throttle2Raw;
+    let encodedThrottle;
+    let SNR;
+    let RSSI;
+
+    if (boardType === BoardType.TX) {
+      remoteVoltageRaw = data[0];
+      boardVoltageRaw = data[1];
+      throttle1Raw = data[2];
+      throttle2Raw = data[3];
+      encodedThrottle = data[4];
+    } else {
+      boardVoltageRaw = data[0];
+      encodedThrottle = data[1];
+      RSSI = data[2];
+      SNR = data[3];
+    }
 
     if (throttle1Raw !== undefined) {
       let newBuffer = [...throttle1Buffer, throttle1Raw];
@@ -158,13 +187,21 @@ export const DataContextContainer = function ({
     setRemoteVoltage(
       remoteVoltageRaw !== undefined ? parseFloat(remoteVoltageRaw) : -1
     );
+
+    if (SNR !== undefined) {
+      setSNR(SNR);
+    }
+
+    if (RSSI !== undefined) {
+      setRSSI(RSSI);
+    }
   }, [lastMessage, isDual]);
 
   const reloadSettings = async () => {
-    const { cellN, txIdentity, channel, isDual } = await loadSettings();
+    const { cellN, identity, channel, isDual } = await loadSettings();
     setCellN(cellN);
     setChannel(channel);
-    setTxIdentity(txIdentity);
+    setidentity(identity);
     setIsDual(isDual);
     setConnectWebSocket(true);
   };
@@ -181,7 +218,9 @@ export const DataContextContainer = function ({
 
   useEffect(() => {
     reloadSettings();
-    reloadCalibration();
+    if (boardType === BoardType.TX) {
+      reloadCalibration();
+    }
   }, []);
 
   const storeSettings = async (settings: Settings) => {
@@ -195,6 +234,7 @@ export const DataContextContainer = function ({
   };
 
   const initialData = {
+    boardType,
     encodedThrottle,
     remoteVoltage,
     cellN,
@@ -204,7 +244,9 @@ export const DataContextContainer = function ({
     throttle1Buffer,
     throttle2Buffer,
     channel,
-    txIdentity,
+    identity,
+    SNR,
+    RSSI,
     isDual,
     calBrake,
     calAcc,

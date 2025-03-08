@@ -5,7 +5,7 @@
 
 struct Config {
     unsigned int channel;
-    unsigned int RXIdentity; 
+    unsigned int identity; 
     unsigned int cellN;
 };
 

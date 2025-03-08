@@ -6,7 +6,7 @@ volatile int RFAvailable = 1;
 volatile int interruptCounter = 1;
 bool forceRX = true;
 
-unsigned long frequency;
+unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
 unsigned int TMRequest = 0;
 bool waitingForRX = false;
@@ -40,7 +40,7 @@ void processReceivedPacket() {
     measuredRSSI = LT.readPacketRSSI();      
     measuredSNR = LT.readPacketSNR(); 
        
-    if(TXIdentity != config.RXIdentity) {
+    if(TXIdentity != config.identity) {
       char reason[30];
       sprintf(reason, "Incorrect identity %3d", TXIdentity);
       setError(reason);
@@ -77,7 +77,7 @@ bool sendTMPacket(unsigned long now) {
     return false;
   }
   LT.startWriteSXBuffer(0);                     
-  LT.writeUint8(config.RXIdentity);                    
+  LT.writeUint8(config.identity);                    
   LT.writeUint16(state.boardVoltage);                        
   LT.endWriteSXBuffer();   
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  

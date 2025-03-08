@@ -13,13 +13,13 @@ unsigned int readUInt(int address) {
 
 void readConfig() {
   config.channel = readUInt(10);
-  config.TXIdentity = readUInt(12);
+  config.identity = readUInt(12);
   config.cellN = readUInt(14);
 }
 
 void writeConfig() {
-  writeUInt(10, config.channel);
-  writeUInt(12, config.TXIdentity);
-  writeUInt(14, config.cellN);
+  writeUInt(0, config.channel);
+  writeUInt(2, config.identity);
+  writeUInt(4, config.cellN);
   EEPROM.commit();
 }

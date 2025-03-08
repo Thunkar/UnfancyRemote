@@ -4,7 +4,9 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "NODE_NO_WARNINGS=1 node --experimental-transform-types src/index.ts"
+    "dev": "NODE_NO_WARNINGS=1 node --experimental-transform-types src/index.ts",
+    "dev:tx": "yarn dev --mode tx",
+    "dev:rx": "yarn dev --mode rx"
   },
   "author": "",
   "license": "ISC",
@@ -14,6 +16,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.2",
     "@types/ws": "^8.5.14",
+    "@types/yargs": "^17.0.33",
     "typescript": "^5.7.3"
   },
   "dependencies": {
@@ -22,7 +25,8 @@
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "pino-pretty": "^13.0.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "yargs": "^17.7.2"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

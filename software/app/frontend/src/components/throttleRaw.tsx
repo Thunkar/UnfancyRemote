@@ -1,4 +1,5 @@
-import { Box, Divider, Typography } from "@mui/material";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import { LineChart } from "@mui/x-charts/LineChart";
 
 export function ThrottleRaw({
@@ -30,15 +31,14 @@ export function ThrottleRaw({
           },
         ]}
         yAxis={[
-          { max: 2200, min: 1500 },
-          { max: 2200, min: 1500 },
+          { max: 2800, min: 1200 },
+          { max: 2800, min: 1200 },
         ]}
         width={400}
         height={250}
-        margin={{ left: 40, right: 40, top: 10, bottom: 40 }}
+        margin={{ left: 40, right: 40, top: 10, bottom: 20 }}
         grid={{ vertical: true, horizontal: true }}
       />
-      <Divider />
     </Box>
   );
 }
