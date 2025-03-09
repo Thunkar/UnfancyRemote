@@ -18,7 +18,7 @@ State state = {
     0.0, 
     0.0, 
     // RF
-    true,
+    false,
     0,
     0,
     0,
