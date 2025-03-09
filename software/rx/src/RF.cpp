@@ -10,7 +10,7 @@ unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
 bool TMRequest = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForReceive = 250;
+unsigned int maxWaitForReceive = 100;
 unsigned int currentReceiveCycles = 0;
 
 unsigned int throttleMask = 0xFFF;

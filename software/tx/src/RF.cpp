@@ -25,8 +25,8 @@ void resetTM() {
   state.currentRSSI = -100;
   state.boardVoltage = 0.0;
   state.boardCellVoltage = 0.0;
+  state.isConnected = false;
 }
-
 
 void IRAM_ATTR processRFInterrupt() {
   RFAvailable = !digitalRead(RFBUSY);
@@ -34,6 +34,10 @@ void IRAM_ATTR processRFInterrupt() {
 }
 
 void processTMPacket() {    
+  if(!checkRXIRQError()) {
+    setError("IRQ Error");
+    return;
+  }   
   unsigned int RXIdentity = -1;
   unsigned int receivedData = 0;
 
@@ -92,23 +96,17 @@ bool receiveTMPacket(unsigned long now) {
     currentTMCycles = 0;
     requestTM = 0; 
     resetTMCounter++;
-    if(resetTMCounter >= 5) {
+    if(resetTMCounter >= 10) {
       resetTM();
     }
     waitingForRX = false;
     forceTX = true;
     lastTMPacketReceived = now;
-    state.isConnected = false;
     setError("TM timeout");
     LT.setMode(MODE_STDBY_RC);  
     LT.config();
     return false;
   }
-  if(!checkRXIRQError()) {
-    setError("IRQ Error");
-    currentTMCycles++;
-    return false;
-  }   
   if(!checkTXRXDone() || !RFAvailable) {
     currentTMCycles++;
     return false;
@@ -162,6 +160,5 @@ bool sendThrottlePacket(unsigned long now) {
   currentTransmitCycles = 0;
   LT.transmitSXBufferIRQ(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
   state.packets++;
-
   return true;                  
 }

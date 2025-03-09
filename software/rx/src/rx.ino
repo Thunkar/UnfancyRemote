@@ -58,8 +58,8 @@ bool printStats(unsigned long now) {
   Serial.println(F("-------------- TASKS --------------"));
   for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     char prBuffer[45];
-    int frequency = round(executions[i] / ellapsed);
-    sprintf(prBuffer, "%-23s | %5dHz", taskNames[i], frequency);
+    float frequency = executions[i] / ellapsed;
+    sprintf(prBuffer, "%-23s | %.2fHz", taskNames[i], frequency);
     Serial.print(prBuffer);
     Serial.println("");
     executions[i] = 0;
