@@ -70,11 +70,7 @@ bool printStats(unsigned long now) {
   Serial.print(F("Frequency: "));
   Serial.print(frequency);
   Serial.println(F("Hz"));
-  Serial.print(F("SNR: "));
-  Serial.print(state.currentSNR);
-  Serial.print(F("dB | RSSI: "));
-  Serial.print(state.currentRSSI);
-  Serial.print(F("dBm | Board V: "));
+  Serial.print(F("Board V: "));
   Serial.print(state.boardVoltage);
   Serial.print(F(" ("));
   Serial.print(state.boardCellVoltage);
