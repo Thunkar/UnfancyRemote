@@ -10,7 +10,7 @@ unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
 bool TMRequest = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForReceive = 100;
+unsigned int maxWaitForReceive = 250;
 unsigned int currentReceiveCycles = 0;
 
 unsigned int throttleMask = 0xFFF;
@@ -22,7 +22,6 @@ void IRAM_ATTR processRFInterrupt() {
 }
 
 void processReceivedPacket() {
-  clearError();
   if(!checkRXIRQError()) {
     setError("IRQ Error");
     return;
@@ -89,11 +88,12 @@ bool sendTMPacket(unsigned long now) {
 }
 
 bool receiveThrottlePacket(unsigned long now) {
+  clearError();
   if(TMRequest) {
     currentReceiveCycles = 0;
     return false;
   }
-  // Excluding tm receives, we have been waiting for more than 50ms for a throttle packet. Reset everything and try again!
+  // Excluding tm receives, we have been waiting for more than 250ms for a throttle packet. Reset everything and try again!
   if(currentReceiveCycles >= maxWaitForReceive/periods[0]) { 
     currentReceiveCycles = 0;
     waitingForRX = false;

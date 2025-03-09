@@ -91,7 +91,9 @@ bool receiveTMPacket(unsigned long now) {
     currentTMCycles = 0;
     return false;
   }
-  // We cannot wait for TM forever and stop sending throttle packages. This shortcuts the TM reception routine and gets on transmitting again
+  // We cannot wait for TM forever and stop sending throttle packages. 
+  // This shortcuts the TM reception routine and gets on transmitting again if we've waited for
+  // more than 40ms (we lost two opportunities to send throttle packages)
   if(currentTMCycles >= maxWaitForTM/periods[1]) { 
     currentTMCycles = 0;
     requestTM = 0; 
@@ -103,7 +105,6 @@ bool receiveTMPacket(unsigned long now) {
     forceTX = true;
     lastTMPacketReceived = now;
     setError("TM timeout");
-    LT.setMode(MODE_STDBY_RC);  
     LT.config();
     return false;
   }
