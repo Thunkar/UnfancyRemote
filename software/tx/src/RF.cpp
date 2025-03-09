@@ -21,8 +21,6 @@ unsigned int batteryVoltageMask = 0xFF00;
 unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
 void resetTM() {
-  state.currentSNR = -100;
-  state.currentRSSI = -100;
   state.boardVoltage = 0.0;
   state.boardCellVoltage = 0.0;
   state.isConnected = false;
@@ -49,8 +47,6 @@ void processTMPacket() {
     receivedData = LT.readUint16();
     RXIdentity = receivedData & RXIdentityMask;
     LT.endReadSXBuffer(); 
-    measuredRSSI = LT.readPacketRSSI();      
-    measuredSNR = LT.readPacketSNR();
     
     if(config.identity != RXIdentity) {
       char reason[50];
@@ -66,8 +62,6 @@ void processTMPacket() {
   if(!state.error) {
     state.TMPackets++;
     resetTMCounter = 0;
-    state.currentSNR = measuredSNR;
-    state.currentRSSI = measuredRSSI;
     unsigned int decodedBatteryVoltage = (receivedData & batteryVoltageMask) >> 8;
     state.boardVoltage = map(decodedBatteryVoltage, 0, 255, 0, config.cellN * 420)/100.0;
     state.boardCellVoltage = state.boardVoltage/float(config.cellN);
@@ -98,7 +92,7 @@ bool receiveTMPacket(unsigned long now) {
     currentTMCycles = 0;
     requestTM = 0; 
     resetTMCounter++;
-    if(resetTMCounter >= 10) {
+    if(resetTMCounter >= 5) {
       resetTM();
     }
     waitingForRX = false;
