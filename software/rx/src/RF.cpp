@@ -62,8 +62,13 @@ void processReceivedPacket() {
 }
 
 bool checkTXRXDone() {
-  uint16_t IRQStatus = LT.readIrqStatus();
-  bool done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+  int attempts = 5;
+  bool done = false;
+  while (!done && attempts > 0) {
+    uint16_t IRQStatus = LT.readIrqStatus();
+    done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+    attempts--;
+  }
   return done;
 }
 
@@ -72,9 +77,9 @@ bool checkRXIRQError() {
   return !(IRQStatus & (IRQ_HEADER_ERROR + IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
 }
 
-bool sendTMPacket(unsigned long now) {
+void sendTMPacket() {
   if(!TMRequest || !RFAvailable || !checkTXRXDone()) {
-    return false;
+    return;
   }
   LT.startWriteSXBuffer(0);             
   unsigned int boardVoltageAsInt = roundAndCastToInt(state.boardVoltage);
@@ -84,7 +89,6 @@ bool sendTMPacket(unsigned long now) {
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
   state.TMPackets++;
   TMRequest = 0;
-  return true;
 }
 
 bool receiveThrottlePacket(unsigned long now) {
@@ -118,6 +122,9 @@ bool receiveThrottlePacket(unsigned long now) {
     return false;
   } else {
     processReceivedPacket();
+    if(TMRequest) {
+      sendTMPacket();
+    }
     currentReceiveCycles = 0;
     waitingForRX = false;
     return true;

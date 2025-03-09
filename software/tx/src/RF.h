@@ -3,6 +3,7 @@
 #include <SX128XLT.h>
 #include <ProgramLT_Definitions.h>
 #include "board.h"
+#include "utils.h"
 #include "state.h"
 #include "config.h"
 #include "error_handling.h"
@@ -10,7 +11,6 @@
 extern SX128XLT LT;
 
 void IRAM_ATTR processRFInterrupt();
-
 extern unsigned long frequency;
 
 bool receiveTMPacket(unsigned long now);

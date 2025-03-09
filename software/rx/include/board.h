@@ -25,9 +25,11 @@ const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
-// Task periods in ms
+// Task scheduling
 
-const unsigned long periods[] = { 1, 20, 1, 1000, 2000, 50 };
+const unsigned long periods[] = { 1, 20, 1000, 2000, 50 };
+extern unsigned long lastRun[];
+extern unsigned long executions[];
 
 // Time in ms to hold the button to enter setup mode
 

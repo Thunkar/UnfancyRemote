@@ -9,15 +9,6 @@
 #include "wifi_setup.h"
 #include "error_handling.h"
 
-
-int LAST_TASK;
-int FIRST_TASK;
-
-char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "printStats", "doServerWork" };
-long lastRun[] = { 0, 0, 0, 0, 0, 0 };
-long executions[] = { 0, 0, 0, 0, 0, 0 };
-
-
 #define DEBUG
 
 void ONSequence() {
@@ -34,6 +25,12 @@ void ONSequence() {
   };
 }
 
+int LAST_TASK;
+int FIRST_TASK;
+unsigned long lastRun[] = { 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0 };
+
+char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "printStats", "doServerWork" };
 
 bool printStats(unsigned long now) {
   #ifdef DEBUG
@@ -45,7 +42,7 @@ bool printStats(unsigned long now) {
   Serial.print(F("Frequency: "));
   Serial.print(frequency);
   Serial.println(F("Hz"));
-  float ellapsed = (now - lastRun[4])/1000;
+  float ellapsed = (now - lastRun[3])/1000;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
   Serial.print(F("s | VBat: "));
@@ -82,10 +79,10 @@ bool printStats(unsigned long now) {
 
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { receiveThrottlePacket, writePPMValue, sendTMPacket, checkBattery, printStats, doServerWork };
+task tasks[] = { receiveThrottlePacket, writePPMValue, checkBattery, printStats, doServerWork };
 
 void loop() {
-  LAST_TASK = state.setupMode ? 5 : 4;
+  LAST_TASK = state.setupMode ? 4 : 3;
   FIRST_TASK = 0; 
   for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     unsigned long now = millis();
@@ -98,7 +95,6 @@ void loop() {
   }
 }
 
-
 void setup() {
   EEPROM.begin(6);
   readConfig();
@@ -106,11 +102,8 @@ void setup() {
   pinMode(BUTTON, INPUT_PULLDOWN);
   pinMode(LED, OUTPUT);
   pinMode(VBAT, INPUT_PULLDOWN);
+
   ONSequence();
-
-  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
-
-  PPM_OUTPUT.attach(PPM);
 
   #ifdef DEBUG
   Serial.begin(115200);
@@ -127,6 +120,10 @@ void setup() {
     Serial.println(F("Setup mode"));
     #endif
   } 
+
+  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
+
+  PPM_OUTPUT.attach(PPM);
 
   SPI.begin();
 

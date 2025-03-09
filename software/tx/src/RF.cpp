@@ -1,7 +1,6 @@
 #include "RF.h"
 
 SX128XLT LT;
-
 volatile int RFAvailable = 1;
 bool forceTX = true;
 
@@ -9,7 +8,7 @@ unsigned long TMPeriod = 500;
 unsigned long lastTMPacketReceived = 0;
 bool requestTM = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForTM = 40;
+unsigned int maxWaitForTM = 10;
 unsigned int currentTMCycles = 0;
 unsigned int currentTransmitCycles = 0;
 unsigned int maxWaitForTransmit = 20;
@@ -69,8 +68,13 @@ void processTMPacket() {
 }
 
 bool checkTXRXDone() {
-  uint16_t IRQStatus = LT.readIrqStatus();
-  bool done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+  int attempts = 5;
+  bool done = false;
+  while (!done && attempts > 0) {
+    uint16_t IRQStatus = LT.readIrqStatus();
+    done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+    attempts--;
+  }
   return done;
 }
 
@@ -87,7 +91,7 @@ bool receiveTMPacket(unsigned long now) {
   }
   // We cannot wait for TM forever and stop sending throttle packages. 
   // This shortcuts the TM reception routine and gets on transmitting again if we've waited for
-  // more than 40ms (we lost two opportunities to send throttle packages)
+  // more than 10ms
   if(currentTMCycles >= maxWaitForTM/periods[1]) { 
     currentTMCycles = 0;
     requestTM = 0; 
@@ -137,12 +141,12 @@ bool sendThrottlePacket(unsigned long now) {
     return false;
   }
 
-  if((!RFAvailable || !checkTXRXDone()) && !forceTX) {
+  if((!checkTXRXDone() || !RFAvailable) && !forceTX) {
     currentTransmitCycles++;
     return false;
   }
 
-  if(now - lastTMPacketReceived > TMPeriod) {
+  if((long)(now - lastTMPacketReceived) > TMPeriod) {
     requestTM = 1;
   }
   
@@ -154,6 +158,10 @@ bool sendThrottlePacket(unsigned long now) {
   forceTX = false;
   currentTransmitCycles = 0;
   LT.transmitSXBufferIRQ(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
+  if(requestTM) {
+    // Make sure receiveTMPacket is scheduled immediately
+    scheduleImmediate(1);
+  }
   state.packets++;
   return true;                  
 }

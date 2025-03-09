@@ -3,6 +3,7 @@
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "board.h"
+#include "utils.h"
 #include "config.h"
 #include "state.h"
 #include "RF.h"
@@ -14,15 +15,6 @@
 #include "battery.h"
 #include "wifi_setup.h"
 #include "error_handling.h"
-
-
-int LAST_TASK;
-int FIRST_TASK;
-
-char *taskNames[] = { "sendThrottlePacket", "receiveTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
-unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
 
 #define DEBUG
 
@@ -52,6 +44,13 @@ void ONSequence() {
       delay(50);
     }
 }
+
+int LAST_TASK;
+int FIRST_TASK;
+unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+const char *taskNames[] = { "sendThrottlePacket", "receiveTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
 
 bool printStats(unsigned long now) {
   #ifdef DEBUG
@@ -144,6 +143,7 @@ void setup() {
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
   pinMode(BUTTON, INPUT);
+
   ONSequence();
   
   #ifdef DEBUG
