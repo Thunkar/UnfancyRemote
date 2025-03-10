@@ -4,4 +4,3 @@
 #include "board.h"
 
 unsigned int sampleAdc(const int pin);
-void scheduleImmediate(const int task);
