@@ -6,15 +6,14 @@ import {
   ToggleButtonGroup,
 } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
-import { DataContext } from "../utils/context";
+import { BoardType, DataContext } from "../utils/context";
 
 export function Settings() {
-  const { cellN, txIdentity, channel, isDual, storeSettings } =
+  const { boardType, cellN, identity, channel, isDual, storeSettings } =
     useContext(DataContext);
 
   const [currentCellN, setCurrentCellN] = useState<number>(cellN);
-  const [currentTxIdentity, setCurrentTxIdentity] =
-    useState<number>(txIdentity);
+  const [currentidentity, setCurrentidentity] = useState<number>(identity);
   const [currentChannel, setCurrentChannel] = useState<number>(channel);
   const [currentIsDual, setCurrentIsDual] = useState<boolean>(isDual);
 
@@ -23,25 +22,25 @@ export function Settings() {
   useEffect(() => {
     const isDirty =
       cellN !== currentCellN ||
-      txIdentity !== currentTxIdentity ||
+      identity !== currentidentity ||
       channel !== currentChannel ||
       isDual !== currentIsDual;
     setDirty(isDirty);
   }, [
     cellN,
-    txIdentity,
+    identity,
     channel,
     isDual,
     currentChannel,
     currentIsDual,
     currentCellN,
-    currentTxIdentity,
+    currentidentity,
   ]);
 
   const handleChange = async () => {
     storeSettings({
       cellN: currentCellN,
-      txIdentity: currentTxIdentity,
+      identity: currentidentity,
       channel: currentChannel,
       isDual: currentIsDual,
     });
@@ -66,8 +65,8 @@ export function Settings() {
         label="# of cells"
       />
       <TextField
-        value={currentTxIdentity}
-        onChange={(event) => setCurrentTxIdentity(parseInt(event.target.value))}
+        value={currentidentity}
+        onChange={(event) => setCurrentidentity(parseInt(event.target.value))}
         fullWidth
         label="TX Identity"
       />
@@ -77,15 +76,17 @@ export function Settings() {
         fullWidth
         label="Channel"
       />
-      <ToggleButtonGroup
-        value={currentIsDual}
-        exclusive
-        onChange={() => setCurrentIsDual(!currentIsDual)}
-        fullWidth
-      >
-        <ToggleButton value={true}>Dual throttle</ToggleButton>
-        <ToggleButton value={false}>Single throttle</ToggleButton>
-      </ToggleButtonGroup>
+      {boardType === BoardType.TX && (
+        <ToggleButtonGroup
+          value={currentIsDual}
+          exclusive
+          onChange={() => setCurrentIsDual(!currentIsDual)}
+          fullWidth
+        >
+          <ToggleButton value={true}>Dual throttle</ToggleButton>
+          <ToggleButton value={false}>Single throttle</ToggleButton>
+        </ToggleButtonGroup>
+      )}
       <Button
         variant="outlined"
         sx={{ mt: "auto" }}

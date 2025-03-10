@@ -10,10 +10,10 @@ void configureSettingsHandler() {
   settingsHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
     if(request->method() == HTTP_POST) {
       unsigned int cellN = json.as<JsonObject>()["cellN"];
-      unsigned int rxIdentity = json.as<JsonObject>()["rxIdentity"];
+      unsigned int identity = json.as<JsonObject>()["identity"];
       unsigned int channel = json.as<JsonObject>()["channel"];
       config.cellN = cellN;
-      config.RXIdentity = rxIdentity;
+      config.identity = identity;
       config.channel = channel;
       writeConfig();
       request->send(200, "text/plain", "Ok");
@@ -21,7 +21,7 @@ void configureSettingsHandler() {
       AsyncJsonResponse *response = new AsyncJsonResponse();
       JsonObject root = response->getRoot().to<JsonObject>();
       root["cellN"] = config.cellN;
-      root["rxIdentity"] = config.RXIdentity;
+      root["identity"] = config.identity;
       root["channel"] = config.channel;
       response->setLength();
       request->send(response);
@@ -83,7 +83,9 @@ bool doServerWork(unsigned long now) {
   dnsServer.processNextRequest();
   ws.textAll(
     state.boardVoltage + String(",") + 
-    state.encodedThrottleValue
+    state.encodedThrottleValue + String(",") +
+    state.currentRSSI + String(",") +
+    state.currentSNR
   );
   return true;
 }

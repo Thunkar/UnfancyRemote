@@ -22,8 +22,6 @@ struct State {
     float boardCellVoltage;
     // RF
     bool isConnected;
-    long currentRSSI;
-    int currentSNR;
     unsigned long packets;
     unsigned long TMPackets;
     volatile int interruptCounter;

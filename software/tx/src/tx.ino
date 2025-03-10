@@ -3,7 +3,7 @@
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "board.h"
-#include "settings.h"
+#include "utils.h"
 #include "config.h"
 #include "state.h"
 #include "RF.h"
@@ -15,15 +15,6 @@
 #include "battery.h"
 #include "wifi_setup.h"
 #include "error_handling.h"
-
-
-int LAST_TASK;
-int FIRST_TASK;
-
-char *taskNames[] = { "sendThrottlePacket", "receiveTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
-unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
 
 #define DEBUG
 
@@ -54,6 +45,13 @@ void ONSequence() {
     }
 }
 
+int LAST_TASK;
+int FIRST_TASK;
+unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+const char *taskNames[] = { "sendThrottlePacket", "receiveTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
+
 bool printStats(unsigned long now) {
   #ifdef DEBUG
   if(state.errors > 0) {
@@ -71,11 +69,7 @@ bool printStats(unsigned long now) {
   Serial.print(F("Frequency: "));
   Serial.print(frequency);
   Serial.println(F("Hz"));
-  Serial.print(F("SNR: "));
-  Serial.print(state.currentSNR);
-  Serial.print(F("dB | RSSI: "));
-  Serial.print(state.currentRSSI);
-  Serial.print(F("dBm | Board V: "));
+  Serial.print(F("Board V: "));
   Serial.print(state.boardVoltage);
   Serial.print(F(" ("));
   Serial.print(state.boardCellVoltage);
@@ -123,7 +117,7 @@ task tasks[] = { sendThrottlePacket, receiveTMPacket, readThrottle, checkButton,
 
 void loop() {
   LAST_TASK = state.setupMode ? 9 : 8;
-  FIRST_TASK = state.setupMode ? 2 : 0; 
+  FIRST_TASK = 0; 
   for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     unsigned long now = millis();
     if(now - lastRun[i] >= periods[i]) {
@@ -145,10 +139,11 @@ void setup() {
   FastLED.addLeds<WS2812B, LED, GRB>(LEDColor, LEDS_LENGTH);
   FastLED.setBrightness(128);
   FastLED.show();
-  pinMode(PPM_THR1, INPUT);
+  pinMode(THR1, INPUT);
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
   pinMode(BUTTON, INPUT);
+
   ONSequence();
   
   #ifdef DEBUG
@@ -160,30 +155,30 @@ void setup() {
       Serial.println(F("An Error has occurred while mounting SPIFFS"));
       return;
     }
-    WiFi.softAP("Unfancy Remote");
+    WiFi.softAP("Unfancy Remote TX");
     setupServer();
     #ifdef DEBUG
     Serial.println(F("Setup mode"));
     #endif
-  } else {
-    attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
+  } 
 
-    SPI.begin();
+  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
 
-    if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
-    {
-      #ifdef DEBUG
-      Serial.println(F("Device error"));
-      #endif
-    }
+  SPI.begin();
 
-    LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-    LT.clearIrqStatus(IRQ_RADIO_ALL);
-
+  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
+  {
     #ifdef DEBUG
-    Serial.println(F("Remote ready"));
+    Serial.println(F("Device error"));
     #endif
   }
+
+  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.clearIrqStatus(IRQ_RADIO_ALL);
+
+  #ifdef DEBUG
+  Serial.println(F("Remote ready"));
+  #endif
 
  
 }

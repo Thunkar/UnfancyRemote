@@ -39,6 +39,7 @@ bool displayMode(unsigned long now) {
       } else {
         for(int i = 0; i < LEDS_LENGTH; i++) {
           changeLEDColor(i, state.setupMode ? CRGB::Green : CRGB::Blue);
+          pulseMotor(-1, -1);
           sequence();
         }
       }

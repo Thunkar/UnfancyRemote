@@ -14,7 +14,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
     method: "POST",
     body: JSON.stringify({
       cellN: settings.cellN,
-      txIdentity: settings.txIdentity,
+      identity: settings.identity,
       channel: settings.channel,
       isDual: settings.isDual ? 1 : 0,
     }),
@@ -31,7 +31,7 @@ export async function loadSettings(): Promise<Settings> {
   const body = await response.json();
   return {
     cellN: body.cellN,
-    txIdentity: body.txIdentity,
+    identity: body.identity,
     channel: body.channel,
     isDual: body.isDual === 1,
   };

@@ -1,29 +1,29 @@
 #include "RF.h"
 
 SX128XLT LT;
-
 volatile int RFAvailable = 1;
 bool forceTX = true;
 
 unsigned long TMPeriod = 500;
 unsigned long lastTMPacketReceived = 0;
-unsigned int requestTM = 0;
+bool requestTM = 0;
 bool waitingForRX = false;
-unsigned int maxWaitForTM = 40;
+unsigned int maxWaitForTM = 10;
 unsigned int currentTMCycles = 0;
 unsigned int currentTransmitCycles = 0;
 unsigned int maxWaitForTransmit = 20;
 int resetTMCounter = 0;
 
+unsigned int RXIdentityMask = 0xFF;
+unsigned int batteryVoltageMask = 0xFF00;
+
 unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
 void resetTM() {
-  state.currentSNR = -100;
-  state.currentRSSI = -100;
   state.boardVoltage = 0.0;
   state.boardCellVoltage = 0.0;
+  state.isConnected = false;
 }
-
 
 void IRAM_ATTR processRFInterrupt() {
   RFAvailable = !digitalRead(RFBUSY);
@@ -31,22 +31,25 @@ void IRAM_ATTR processRFInterrupt() {
 }
 
 void processTMPacket() {    
+  if(!checkRXIRQError()) {
+    setError("IRQ Error");
+    return;
+  }   
   unsigned int RXIdentity = -1;
-  unsigned int receivedValue = 0;
+  unsigned int receivedData = 0;
+
   unsigned int measuredRXPacketLength = LT.readRXPacketL();
   int measuredSNR = 0;
   long measuredRSSI = 0;
   if(measuredRXPacketLength == TMPacketLength){
     LT.startReadSXBuffer(0);                
-    RXIdentity = LT.readUint8();         
-    receivedValue = LT.readUint16();       
+    receivedData = LT.readUint16();
+    RXIdentity = receivedData & RXIdentityMask;
     LT.endReadSXBuffer(); 
-    measuredRSSI = LT.readPacketRSSI();      
-    measuredSNR = LT.readPacketSNR();
     
-    if(config.TXIdentity != RXIdentity) {
+    if(config.identity != RXIdentity) {
       char reason[50];
-      sprintf(reason, "Incorrect identity %3d", config.TXIdentity);
+      sprintf(reason, "Incorrect identity %3d", config.identity);
       setError(reason);
     }
   } else {
@@ -58,16 +61,20 @@ void processTMPacket() {
   if(!state.error) {
     state.TMPackets++;
     resetTMCounter = 0;
-    state.currentSNR = measuredSNR;
-    state.currentRSSI = measuredRSSI;
-    state.boardVoltage = receivedValue/1000.0;
+    unsigned int decodedBatteryVoltage = (receivedData & batteryVoltageMask) >> 8;
+    state.boardVoltage = map(decodedBatteryVoltage, 0, 255, 0, config.cellN * 420)/100.0;
     state.boardCellVoltage = state.boardVoltage/float(config.cellN);
   } 
 }
 
 bool checkTXRXDone() {
-  uint16_t IRQStatus = LT.readIrqStatus();
-  bool done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+  int attempts = 5;
+  bool done = false;
+  while (!done && attempts > 0) {
+    uint16_t IRQStatus = LT.readIrqStatus();
+    done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+    attempts--;
+  }
   return done;
 }
 
@@ -78,15 +85,13 @@ bool checkRXIRQError() {
 
 bool receiveTMPacket(unsigned long now) {
   clearError();
-  if(!checkRXIRQError()) {
-    setError("IRQ Error");
-    return false;
-  }   
   if(!requestTM) {
     currentTMCycles = 0;
     return false;
   }
-  // We cannot wait for TM forever and stop sending throttle packages. This shortcuts the TM reception routine and gets on transmitting again
+  // We cannot wait for TM forever and stop sending throttle packages. 
+  // This shortcuts the TM reception routine and gets on transmitting again if we've waited for
+  // more than 10ms
   if(currentTMCycles >= maxWaitForTM/periods[1]) { 
     currentTMCycles = 0;
     requestTM = 0; 
@@ -97,9 +102,7 @@ bool receiveTMPacket(unsigned long now) {
     waitingForRX = false;
     forceTX = true;
     lastTMPacketReceived = now;
-    state.isConnected = false;
     setError("TM timeout");
-    LT.setMode(MODE_STDBY_RC);  
     LT.config();
     return false;
   }
@@ -138,24 +141,27 @@ bool sendThrottlePacket(unsigned long now) {
     return false;
   }
 
-  if((!RFAvailable || !checkTXRXDone()) && !forceTX) {
+  if((!checkTXRXDone() || !RFAvailable) && !forceTX) {
     currentTransmitCycles++;
     return false;
   }
 
-  if(now - lastTMPacketReceived > TMPeriod) {
+  if((long)(now - lastTMPacketReceived) > TMPeriod) {
     requestTM = 1;
   }
   
   LT.startWriteSXBuffer(0);                     
-  LT.writeUint8(config.TXIdentity);                     
-  LT.writeUint16(state.encodedThrottleValue);  
-  LT.writeUint8(requestTM);                      
+  LT.writeUint8(config.identity); 
+  unsigned int encodedData = (requestTM << 12) + state.encodedThrottleValue;                   
+  LT.writeUint16(encodedData);          
   LT.endWriteSXBuffer();         
   forceTX = false;
   currentTransmitCycles = 0;
   LT.transmitSXBufferIRQ(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
+  if(requestTM) {
+    // Make sure receiveTMPacket is scheduled immediately
+    scheduleImmediate(1);
+  }
   state.packets++;
-
   return true;                  
 }

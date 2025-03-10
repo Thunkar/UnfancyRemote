@@ -3,8 +3,8 @@
 #include <SX128XLT.h>
 #include <ProgramLT_Definitions.h>
 #include "board.h"
+#include "utils.h"
 #include "state.h"
-#include "settings.h"
 #include "config.h"
 #include "error_handling.h"
 
@@ -16,3 +16,5 @@ extern unsigned long frequency;
 
 bool receiveThrottlePacket(unsigned long now);
 bool sendTMPacket(unsigned long now);
+bool checkRXIRQError();
+bool checkTXRXDone();

@@ -4,10 +4,25 @@ import { createServer } from "http";
 import express, { type Request, type Response, json } from "express";
 import { pinoHttp } from "pino-http";
 import cors from "cors";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 
-const ENCODED_MAX = 65535;
-const ENCODED_HALF = 32768;
-const BRAKE_SENSITIVITY = 5;
+const argv = await yargs(hideBin(process.argv))
+  .options({
+    mode: { type: "string", default: "tx" },
+  })
+  .parse();
+
+const simMode: "rx" | "tx" = argv.mode === "rx" ? "rx" : "tx";
+
+const ENCODED_MAX = 4095;
+const ENCODED_HALF = 2048;
+const BRAKE_SENSITIVITY = 10;
+
+const MIN_SNR = -25;
+const MAX_SNR = 15;
+const MIN_RSSI = -100;
+const MAX_RSSI = 100;
 
 const THROTTLE_MIN_MV = 1500;
 const THROTTLE_MAX_MV = 2100;
@@ -27,15 +42,28 @@ let throttle2Raw = THROTTLE_MAX_MV - 1;
 
 let encodedThrottle = 0;
 
-let channel = 15;
-let txIdentity = 224;
-let isDual = 1;
+type Config = {
+  cellN: number;
+  channel: number;
+  identity: number;
+  isDual?: number;
+};
+
+const config = {
+  cellN: 12,
+  channel: 15,
+  identity: 224,
+  isDual: simMode === "tx" ? 1 : undefined,
+};
 
 let remoteVoltage = 3.8;
 let boardVoltage = 3.8 * 12;
 
+let snr = 0;
+let rssi = 0;
+
 let calAcc = THROTTLE_MAX_MV - 2;
-let calBrake = THROTTLE_MAX_MV - 2;
+let calBrake = config.isDual ? THROTTLE_MAX_MV - 2 : THROTTLE_MIN_MV + 2;
 let centerAcc = (THROTTLE_MAX_MV + THROTTLE_MIN_MV) / 2;
 let centerBrake = (THROTTLE_MAX_MV + THROTTLE_MIN_MV) / 2;
 let inverted = 0;
@@ -89,7 +117,7 @@ function computeState() {
     )
   );
 
-  if (isDual) {
+  if (config.isDual) {
     const throttle1 = constrain(
       throttle1Raw,
       Math.min(centerAcc, calAcc) + 1,
@@ -134,7 +162,7 @@ function computeState() {
             throttle1,
             centerAcc,
             Math.max(calBrake, calAcc),
-            ENCODED_HALF,
+            ENCODED_HALF + 1,
             ENCODED_MAX
           )
         : mapRange(
@@ -147,13 +175,13 @@ function computeState() {
     encodedThrottle = inverted ? ENCODED_MAX - scaledValue : scaledValue;
   }
 
-  return [
-    remoteVoltage,
-    boardVoltage,
-    throttle1Raw,
-    throttle2Raw,
-    encodedThrottle,
-  ];
+  snr = limitDecimals(constrain(addNoise(snr, 0.8, 1), MIN_SNR, MAX_SNR));
+
+  rssi = limitDecimals(constrain(addNoise(rssi, 0.8, 1), MIN_RSSI, MAX_RSSI));
+
+  return simMode === "tx"
+    ? [remoteVoltage, boardVoltage, throttle1Raw, throttle2Raw, encodedThrottle]
+    : [boardVoltage, encodedThrottle, rssi, snr];
 }
 
 async function main() {
@@ -183,40 +211,26 @@ async function main() {
 
   app.post(
     "/settings",
-    (
-      req: Request<
-        any,
-        any,
-        {
-          cellN: number;
-          txIdentity: number;
-          channel: number;
-          isDual: number;
-        }
-      >,
-      res: Response
-    ) => {
+    (req: Request<any, any, typeof config>, res: Response) => {
       const {
         cellN: newCellN,
-        txIdentity: newTxIdentity,
+        identity: newIdentity,
         channel: newChannel,
         isDual: newIsDual,
       } = req.body;
       cellN = newCellN;
-      txIdentity = newTxIdentity;
-      channel = newChannel;
-      isDual = newIsDual;
+      config.identity = newIdentity;
+      config.channel = newChannel;
+      config.isDual = newIsDual;
       res.status(200).send("Ok");
     }
   );
 
   app.get("/settings", (req: Request, res: Response) => {
-    res.status(200).json({
-      cellN,
-      txIdentity,
-      channel,
-      isDual,
-    });
+    if (simMode === "rx") {
+      delete config.isDual;
+    }
+    res.status(200).json(config);
   });
 
   app.post(
@@ -274,7 +288,7 @@ async function main() {
 
   await server.listen(8080);
 
-  logger.info("Server listening on port 8080");
+  logger.info("Server listening on port 8080. Mode is %s", simMode);
 
   setInterval(() => {
     const newState = computeState().join(",");

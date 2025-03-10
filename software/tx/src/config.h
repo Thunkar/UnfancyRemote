@@ -5,7 +5,7 @@
 
 struct Config {
     unsigned int channel;
-    unsigned int TXIdentity; 
+    unsigned int identity; 
     unsigned int cellN;
     unsigned int calBrake;
     unsigned int calAcc;

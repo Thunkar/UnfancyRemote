@@ -1,27 +1,36 @@
 #include <Arduino.h>
 #include <SPI.h>
-#include "soc/soc.h"
-#include "soc/rtc_cntl_reg.h"
 #include "board.h"
-#include "settings.h"
 #include "config.h"
 #include "state.h"
-#include "battery.h"
 #include "RF.h"
 #include "PPM.h"
+#include "battery.h"
 #include "wifi_setup.h"
 #include "error_handling.h"
 
-
-const int TASKS_LENGTH = 5;
-
-char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "sendTMPacket", "checkBattery", "printStats" };
-long lastRun[] = { 0, 0, 0, 0, 0 };
-long executions[] = { 0, 0, 0, 0, 0 };
-
-
 #define DEBUG
 
+void ONSequence() {
+  unsigned long now = millis();
+  unsigned long lastCheck = now;
+  digitalWrite(LED, HIGH);
+  while(digitalRead(BUTTON)){
+    state.setupMode = (lastCheck - now) > setupModeDelay;
+    lastCheck = millis();
+    if(state.setupMode) {
+      digitalWrite(LED, LOW);
+      break;
+    }
+  };
+}
+
+int LAST_TASK;
+int FIRST_TASK;
+unsigned long lastRun[] = { 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0 };
+
+char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "printStats", "doServerWork" };
 
 bool printStats(unsigned long now) {
   #ifdef DEBUG
@@ -33,21 +42,21 @@ bool printStats(unsigned long now) {
   Serial.print(F("Frequency: "));
   Serial.print(frequency);
   Serial.println(F("Hz"));
-  float ellapsed = (now - lastRun[TASKS_LENGTH-1])/1000;
+  float ellapsed = (now - lastRun[3])/1000;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
   Serial.print(F("s | VBat: "));
-  Serial.print(state.boardVoltage/1000.0);
+  Serial.print(state.boardVoltage);
   Serial.print(F("V | SNR: "));
   Serial.print(state.currentSNR);
   Serial.print(F("dB | RSSI: "));
   Serial.print(state.currentRSSI);
   Serial.println(F("dBm"));
   Serial.println(F("-------------- TASKS --------------"));
-  for(int i = 0; i < TASKS_LENGTH - 1; i++) {
+  for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     char prBuffer[45];
-    int frequency = round(executions[i] / ellapsed);
-    sprintf(prBuffer, "%-23s | %5dHz", taskNames[i], frequency);
+    float frequency = executions[i] / ellapsed;
+    sprintf(prBuffer, "%-23s | %.2fHz", taskNames[i], frequency);
     Serial.print(prBuffer);
     Serial.println("");
     executions[i] = 0;
@@ -70,11 +79,12 @@ bool printStats(unsigned long now) {
 
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { receiveThrottlePacket, writePPMValue, sendTMPacket, checkBattery, printStats };
+task tasks[] = { receiveThrottlePacket, writePPMValue, checkBattery, printStats, doServerWork };
 
-void loop()
-{
-  for(int i = 0; i < TASKS_LENGTH; i++) {
+void loop() {
+  LAST_TASK = state.setupMode ? 4 : 3;
+  FIRST_TASK = 0; 
+  for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     unsigned long now = millis();
     if(now - lastRun[i] >= periods[i]) {
       if(tasks[i](now)) {
@@ -85,16 +95,15 @@ void loop()
   }
 }
 
-
-void setup()
-{
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
-  EEPROM.begin(18);
+void setup() {
+  EEPROM.begin(6);
   readConfig();
-  pinMode(PPM_THR1, OUTPUT);
+  pinMode(PPM, OUTPUT);
+  pinMode(BUTTON, INPUT_PULLDOWN);
+  pinMode(LED, OUTPUT);
+  pinMode(VBAT, INPUT_PULLDOWN);
 
-  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
-  PPM.attach(PPM_THR1);
+  ONSequence();
 
   #ifdef DEBUG
   Serial.begin(115200);
@@ -110,23 +119,25 @@ void setup()
     #ifdef DEBUG
     Serial.println(F("Setup mode"));
     #endif
-  } else {
-    attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
+  } 
 
-    SPI.begin();
+  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
 
-    if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
-    {
-      #ifdef DEBUG
-      Serial.println(F("Device error"));
-      #endif
-    }
+  PPM_OUTPUT.attach(PPM);
 
-    LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-    LT.clearIrqStatus(IRQ_RADIO_ALL);
+  SPI.begin();
+
+  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
+  {
+    #ifdef DEBUG
+    Serial.println(F("Device error"));
+    #endif
+  }
+
+  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.clearIrqStatus(IRQ_RADIO_ALL);
 
   #ifdef DEBUG
   Serial.println(F("Receiver ready"));
   #endif
-  }
 }

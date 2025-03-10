@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { Divider, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 
 const container = css({
   display: "flex",
@@ -93,7 +93,6 @@ export function Battery({
           ))}
         </div>
       </div>
-      <Divider sx={{ margin: "0.5rem 0" }} />
     </div>
   );
 }
