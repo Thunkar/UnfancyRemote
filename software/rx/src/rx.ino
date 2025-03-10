@@ -68,11 +68,25 @@ bool printStats(unsigned long now) {
   int TMPacketsPerSecond = round(state.TMPackets / ellapsed);
   Serial.print(F("TM packets/s: "));
   Serial.println(TMPacketsPerSecond);
+  Serial.println(F("RF waits: "));
+  float RFWaitMeanUs = state.waitingForRF / state.RFWaits;
+  char meanTimeWaitingBuffer[50];
+  sprintf(meanTimeWaitingBuffer, "%-40s %.2fus", "- Mean time waiting:", RFWaitMeanUs); 
+  Serial.print(meanTimeWaitingBuffer);
+  Serial.println("");
+  float RFWaitsPerSecond = state.RFWaits / ellapsed;
+  char RFWaitsPerSecondBuffer[50];
+  sprintf(RFWaitsPerSecondBuffer, "%-40s %.2f", "- RF waits/s: ", RFWaitsPerSecond);
+  Serial.print(RFWaitsPerSecondBuffer);
+  Serial.println("");
   Serial.print(F("Errors: "));
+
   Serial.println(state.errors);
   state.errors = 0;
   state.packets = 0;
   state.TMPackets = 0;
+  state.RFWaits = 0;
+  state.waitingForRF = 0;
   #endif
   return true;
 }
@@ -102,6 +116,7 @@ void setup() {
   pinMode(BUTTON, INPUT_PULLDOWN);
   pinMode(LED, OUTPUT);
   pinMode(VBAT, INPUT_PULLDOWN);
+  pinMode(RFBUSY, INPUT);
 
   ONSequence();
 
@@ -120,8 +135,6 @@ void setup() {
     Serial.println(F("Setup mode"));
     #endif
   } 
-
-  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
 
   PPM_OUTPUT.attach(PPM);
 

@@ -27,7 +27,7 @@ const unsigned int ADC_SAMPLES = 5;
 
 // Task scheduling
 
-const unsigned long periods[] = { 1, 20, 1000, 2000, 50 };
+const unsigned long periods[] = { 10, 20, 1000, 2000, 50 };
 extern unsigned long lastRun[];
 extern unsigned long executions[];
 

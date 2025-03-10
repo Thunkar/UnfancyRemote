@@ -16,6 +16,7 @@ State state = {
     0,
     0,
     0,
+    0,
     // Errors
     false, 
     0, 

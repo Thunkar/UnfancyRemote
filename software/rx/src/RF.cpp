@@ -2,33 +2,48 @@
 
 SX128XLT LT;
 
-volatile int RFAvailable = 1;
-volatile int interruptCounter = 1;
-bool forceRX = true;
-
 unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
-
-bool TMRequest = 0;
-bool waitingForRX = false;
-unsigned int maxWaitForReceive = 250;
-unsigned int currentReceiveCycles = 0;
 
 unsigned int throttleMask = 0xFFF;
 unsigned int TMRequestMask = 0x1000;
 
-void IRAM_ATTR processRFInterrupt() {
-  RFAvailable = !digitalRead(RFBUSY);
-  interruptCounter++;
+void hardReset() {
+  state.currentSNR = -100;
+  state.currentRSSI = -100;
+  state.isConnected = false;
+  LT.config();
 }
 
-void processReceivedPacket() {
+bool waitForRFReady() {
+  long timeout = 15000; // 15ms
+  long ellapsed = 0;
+  bool RFAvailable = false;
+  unsigned long start = micros();
+  while (!RFAvailable && (timeout-ellapsed) > 0) {
+    uint16_t IRQStatus = LT.readIrqStatus();
+    bool RXTXDone = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+    RFAvailable = !digitalRead(RFBUSY) && RXTXDone;
+    ellapsed = micros() - start;
+  }
+  state.waitingForRF+=ellapsed;
+  state.RFWaits++;
+  return RFAvailable;
+}
+
+bool checkRXIRQError() {
+  uint16_t IRQStatus = LT.readIrqStatus();
+  return !(IRQStatus & (IRQ_HEADER_ERROR + IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
+}
+
+bool processReceivedPacket() {
   if(!checkRXIRQError()) {
     setError("IRQ Error");
-    return;
+    return false;
   }                                               
   unsigned int TXIdentity = -1;
   unsigned int receivedData = ENCODED_HALF;
   unsigned int measuredRXPacketLength = LT.readRXPacketL();
+  bool TMRequest = false;
   int measuredSNR = 0;
   long measuredRSSI = 0;
   
@@ -59,74 +74,36 @@ void processReceivedPacket() {
     state.encodedThrottleValue = (receivedData & throttleMask);
     TMRequest = (receivedData & TMRequestMask) >> 12;
   }
-}
-
-bool checkTXRXDone() {
-  int attempts = 5;
-  bool done = false;
-  while (!done && attempts > 0) {
-    uint16_t IRQStatus = LT.readIrqStatus();
-    done = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
-    attempts--;
-  }
-  return done;
-}
-
-bool checkRXIRQError() {
-  uint16_t IRQStatus = LT.readIrqStatus();
-  return !(IRQStatus & (IRQ_HEADER_ERROR + IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
+  return TMRequest;
 }
 
 void sendTMPacket() {
-  if(!TMRequest || !RFAvailable || !checkTXRXDone()) {
-    return;
-  }
   LT.startWriteSXBuffer(0);             
   unsigned int boardVoltageAsInt = roundAndCastToInt(state.boardVoltage);
   unsigned int encodedBoardVoltage = map(boardVoltageAsInt, 0, 420 * config.cellN, 0, 255) << 8;        
   LT.writeUint16(encodedBoardVoltage+config.identity);                            
   LT.endWriteSXBuffer();   
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
+  if(!waitForRFReady()) {
+    setError("TX timeout");
+    hardReset();
+  }
   state.TMPackets++;
-  TMRequest = 0;
 }
 
 bool receiveThrottlePacket(unsigned long now) {
   clearError();
-  if(TMRequest) {
-    currentReceiveCycles = 0;
-    return false;
-  }
-  // Excluding tm receives, we have been waiting for more than 250ms for a throttle packet. Reset everything and try again!
-  if(currentReceiveCycles >= maxWaitForReceive/periods[0]) { 
-    currentReceiveCycles = 0;
-    waitingForRX = false;
-    forceRX = true;
-    TMRequest = 0;
-    state.currentSNR = -100;
-    state.currentRSSI = -100;
+  LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
+  if(!waitForRFReady()) {
+    setError("RX timeout");
+    hardReset();
     state.encodedThrottleValue = ENCODED_HALF;
-    state.isConnected = false;
-    setError("Receive timeout");
-    LT.config();
     return false;
   }
-  if((!checkTXRXDone() || !RFAvailable) && !forceRX) {
-    currentReceiveCycles++;
-    return false;
+  bool TMRequest = processReceivedPacket();
+  if(TMRequest) {
+    sendTMPacket();
   }
-  forceRX = false;
-  if(!waitingForRX) {
-    waitingForRX = true;
-    LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-    return false;
-  } else {
-    processReceivedPacket();
-    if(TMRequest) {
-      sendTMPacket();
-    }
-    currentReceiveCycles = 0;
-    waitingForRX = false;
-    return true;
-  }
+  return true;
+  
 }

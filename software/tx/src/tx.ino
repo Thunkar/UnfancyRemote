@@ -47,10 +47,10 @@ void ONSequence() {
 
 int LAST_TASK;
 int FIRST_TASK;
-unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-const char *taskNames[] = { "sendThrottlePacket", "receiveTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
+const char *taskNames[] = { "sendThrottlePacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
 
 bool printStats(unsigned long now) {
   #ifdef DEBUG
@@ -59,7 +59,7 @@ bool printStats(unsigned long now) {
     Serial.println(state.errorReason);
     Serial.println(F("//////////////////////"));
   }
-  float ellapsed = (now - lastRun[8])/1000;
+  float ellapsed = (now - lastRun[7])/1000;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
   Serial.print(F("s | VBat: "));
@@ -98,25 +98,34 @@ bool printStats(unsigned long now) {
   int TMPacketsPerSecond = round(state.TMPackets / ellapsed);
   Serial.print(F("TM packets/s: "));
   Serial.println(TMPacketsPerSecond);
-  int interruptsPerSecond = round(state.interruptCounter / ellapsed);
-  Serial.print(F("Interrupts/s: "));
-  Serial.println(interruptsPerSecond);
+  Serial.println(F("RF waits: "));
+  float RFWaitMeanUs = state.waitingForRF / state.RFWaits;
+  char meanTimeWaitingBuffer[50];
+  sprintf(meanTimeWaitingBuffer, "%-40s %.2fus", "- Mean time waiting:", RFWaitMeanUs); 
+  Serial.print(meanTimeWaitingBuffer);
+  Serial.println("");
+  float RFWaitsPerSecond = state.RFWaits / ellapsed;
+  char RFWaitsPerSecondBuffer[50];
+  sprintf(RFWaitsPerSecondBuffer, "%-40s %.2f", "- RF waits/s: ", RFWaitsPerSecond);
+  Serial.print(RFWaitsPerSecondBuffer);
+  Serial.println("");
   Serial.print(F("Errors: "));
   Serial.println(state.errors);
   state.errors = 0; 
   state.packets = 0;
   state.TMPackets = 0;
-  state.interruptCounter = 0;
+  state.RFWaits = 0;
+  state.waitingForRF = 0;
   #endif
   return true;
 }
 
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { sendThrottlePacket, receiveTMPacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, printStats, doServerWork };
+task tasks[] = { sendThrottlePacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, printStats, doServerWork };
 
 void loop() {
-  LAST_TASK = state.setupMode ? 9 : 8;
+  LAST_TASK = state.setupMode ? 8 : 7;
   FIRST_TASK = 0; 
   for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
     unsigned long now = millis();
@@ -161,8 +170,6 @@ void setup() {
     Serial.println(F("Setup mode"));
     #endif
   } 
-
-  attachInterrupt(RFBUSY, processRFInterrupt, CHANGE);
 
   SPI.begin();
 

@@ -18,7 +18,8 @@ struct State {
     int currentSNR;
     unsigned long packets;
     unsigned long TMPackets;
-    volatile int interruptCounter;
+    unsigned long waitingForRF;
+    unsigned long RFWaits;
     // Errors 
     bool error;
     int errors;
