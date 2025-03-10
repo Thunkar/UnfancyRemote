@@ -28,11 +28,6 @@ const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
-// Task scheduling
-
-const unsigned long periods[] = { 20, 10, 200, 1000, 100, 50, 20, 2000, 50 };
-extern unsigned long lastRun[];
-extern unsigned long executions[];
 
 // Time in ms to hold the button to enter setup mode
 
@@ -50,7 +45,7 @@ const float BOARD_BATTERY_CELL_V_THR[] = { 4.0, 3.8, 3.7, 3.5, 3.3 };
 #define LORA_DEVICE DEVICE_SX1280    
 #define Offset 0                                 //offset frequency for calibration purposes  
 #define Bandwidth LORA_BW_1600                   //LoRa bandwidth
-#define SpreadingFactor LORA_SF5                 //LoRa spreading factor
+#define SpreadingFactor LORA_SF7                 //LoRa spreading factor
 #define CodeRate LORA_CR_4_5                     //LoRa coding rate
 
 const unsigned int throttlePacketLength = 3;                  //packet length is fixed 

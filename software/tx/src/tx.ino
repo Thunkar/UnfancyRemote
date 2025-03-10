@@ -46,9 +46,12 @@ void ONSequence() {
 }
 
 int LAST_TASK;
-int FIRST_TASK;
+const unsigned long periods[] = { 20, 10, 200, 1000, 100, 50, 20, 2000, 50 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned long executions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long successes[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long failures[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long times[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long loops = 0;
 
 const char *taskNames[] = { "sendThrottlePacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
 
@@ -82,16 +85,24 @@ bool printStats(unsigned long now) {
   Serial.print(config.calAcc);
   Serial.print(F(" | Inverted: "));
   Serial.println(config.inverted ? "y" : "n");
-  Serial.println(F("-------------- TASKS --------------"));
-  for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
-    char prBuffer[45];
-    float frequency = executions[i] / ellapsed;
-    sprintf(prBuffer, "%-20s | %.2fHz", taskNames[i], frequency);
+  Serial.println(F("---------------------- TASKS ----------------------"));
+  for(int i = 0; i <= LAST_TASK; i++) {
+    char prBuffer[100];
+    long executions = successes[i] + failures[i];
+    float frequency = executions / ellapsed;
+    float mean = times[i] / (float)executions;
+    sprintf(prBuffer, "%-20s | %6.2fHz | ~%7.2fus | %.2f", taskNames[i], frequency, mean, successes[i]/(float)executions);
     Serial.print(prBuffer);
     Serial.println("");
-    executions[i] = 0;
+    successes[i] = 0;
+    failures[i] = 0;
+    times[i] = 0;
   }
-  Serial.println(F("-----------------------------------"));
+  Serial.println(F("---------------------------------------------------"));
+  float loopFrequency = loops / ellapsed;
+  Serial.print(F("Loop frequency: "));
+  Serial.print(loopFrequency);
+  Serial.println(F("Hz"));
   int packetsPerSecond = round(state.packets / ellapsed);
   Serial.print(F("Packets/s: "));
   Serial.println(packetsPerSecond);
@@ -116,6 +127,7 @@ bool printStats(unsigned long now) {
   state.TMPackets = 0;
   state.RFWaits = 0;
   state.waitingForRF = 0;
+  loops = 0;
   #endif
   return true;
 }
@@ -125,17 +137,21 @@ typedef bool (*task)(unsigned long);
 task tasks[] = { sendThrottlePacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, printStats, doServerWork };
 
 void loop() {
-  LAST_TASK = state.setupMode ? 8 : 7;
-  FIRST_TASK = 0; 
-  for(int i = FIRST_TASK; i <= LAST_TASK; i++) {
-    unsigned long now = millis();
-    if(now - lastRun[i] >= periods[i]) {
-      if(tasks[i](now)) {
-        executions[i]++;
+  for(int i = 0; i <= LAST_TASK; i++) {
+    unsigned long start = micros();
+    unsigned long startMillis = start/1000;
+    if((startMillis - lastRun[i]) >= periods[i]) {
+      if(tasks[i](startMillis)) {
+        successes[i]++;
+      } else {
+        failures[i]++;
       }
-      lastRun[i] = millis();
+      unsigned long end = micros();
+      times[i]+=(end - start);
+      lastRun[i] = end/1000;
     }
   }
+  loops++;
 }
 
 
@@ -152,8 +168,11 @@ void setup() {
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
   pinMode(BUTTON, INPUT);
+  pinMode(RFBUSY, INPUT);
 
   ONSequence();
+
+  LAST_TASK = state.setupMode ? 8 : 7;
   
   #ifdef DEBUG
   Serial.begin(115200);

@@ -9,7 +9,3 @@ unsigned int sampleAdc(const int pin) {
 
   return (unsigned int)((float)scaledmVolts/(float)ADC_SAMPLES);
 }
-
-void scheduleImmediate(const int task) {
-  lastRun[task] = 0;
-}

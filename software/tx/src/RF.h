@@ -12,4 +12,5 @@ extern SX128XLT LT;
 
 extern unsigned long frequency;
 
+void IRAM_ATTR processRFInterrupt();
 bool sendThrottlePacket(unsigned long now);

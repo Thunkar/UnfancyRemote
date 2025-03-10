@@ -27,14 +27,16 @@ void hardReset() {
 }
 
 bool waitForRFReady() {
-  long timeout = 5000; // 5ms
+  long timeout = 10000; // 10ms
   long ellapsed = 0;
   bool RFAvailable = false;
   unsigned long start = micros();
+  bool RFBusyLow = false;
   while (!RFAvailable && (timeout-ellapsed) > 0) {
+    RFBusyLow = RFBusyLow || !digitalRead(RFBUSY);
     uint16_t IRQStatus = LT.readIrqStatus();
     bool RXTXDone = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
-    RFAvailable = !digitalRead(RFBUSY) && RXTXDone;
+    RFAvailable = RFBusyLow && RXTXDone;
     ellapsed = micros() - start;
   }
   state.waitingForRF+=ellapsed;
@@ -97,6 +99,7 @@ void receiveTMPacket() {
 }
 
 bool sendThrottlePacket(unsigned long now) {
+  clearError();
   LT.startWriteSXBuffer(0);                     
   LT.writeUint8(config.identity); 
   bool requestTM = (now - lastTMPacketReceived) > TMPeriod;
@@ -104,12 +107,11 @@ bool sendThrottlePacket(unsigned long now) {
   LT.writeUint16(encodedData);          
   LT.endWriteSXBuffer();       
   LT.transmitSXBufferIRQ(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
-  if(!waitForRFReady()) {
-    setError("TX timeout");
-    hardReset();
-    return false;
-  }
   if(requestTM) {
+    if(!waitForRFReady()) {
+      setError("TX timeout");
+      return false;
+    }
     receiveTMPacket();
     lastTMPacketReceived = now;
   }

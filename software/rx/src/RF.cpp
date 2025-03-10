@@ -11,18 +11,21 @@ void hardReset() {
   state.currentSNR = -100;
   state.currentRSSI = -100;
   state.isConnected = false;
+  state.encodedThrottleValue = ENCODED_HALF;
   LT.config();
 }
 
 bool waitForRFReady() {
-  long timeout = 15000; // 15ms
+  long timeout = 20000; // 20ms
   long ellapsed = 0;
   bool RFAvailable = false;
   unsigned long start = micros();
+  bool RFBusyLow = false;
   while (!RFAvailable && (timeout-ellapsed) > 0) {
+    RFBusyLow = RFBusyLow || !digitalRead(RFBUSY);
     uint16_t IRQStatus = LT.readIrqStatus();
     bool RXTXDone = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
-    RFAvailable = !digitalRead(RFBUSY) && RXTXDone;
+    RFAvailable = RFBusyLow && RXTXDone;
     ellapsed = micros() - start;
   }
   state.waitingForRF+=ellapsed;
@@ -87,6 +90,7 @@ void sendTMPacket() {
   if(!waitForRFReady()) {
     setError("TX timeout");
     hardReset();
+    return;
   }
   state.TMPackets++;
 }
@@ -96,8 +100,6 @@ bool receiveThrottlePacket(unsigned long now) {
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
   if(!waitForRFReady()) {
     setError("RX timeout");
-    hardReset();
-    state.encodedThrottleValue = ENCODED_HALF;
     return false;
   }
   bool TMRequest = processReceivedPacket();

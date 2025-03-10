@@ -25,12 +25,6 @@ const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
-// Task scheduling
-
-const unsigned long periods[] = { 10, 20, 1000, 2000, 50 };
-extern unsigned long lastRun[];
-extern unsigned long executions[];
-
 // Time in ms to hold the button to enter setup mode
 
 const int setupModeDelay = 5000; 
@@ -41,9 +35,9 @@ const int setupModeDelay = 5000;
 #define CH_BANDWIDTH_HZ 2500000
 #define BASE_FREQUENCY 2400000000
 #define LORA_DEVICE DEVICE_SX1280    
-#define Offset 0                                 //offset frequency for calibration purposes  
-#define Bandwidth LORA_BW_1600                   //LoRa bandwidth
-#define SpreadingFactor LORA_SF5                 //LoRa spreading factor
+#define Offset 0                                //offset frequency for calibration purposes  
+#define Bandwidth LORA_BW_1600                  //LoRa bandwidth
+#define SpreadingFactor LORA_SF7                //LoRa spreading factor
 #define CodeRate LORA_CR_4_5                    //LoRa coding rate
 
 const unsigned int throttlePacketLength = 3;                  //packet length is fixed 
