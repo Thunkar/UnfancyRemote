@@ -98,6 +98,7 @@ bool printStats(unsigned long now) {
   state.TMPackets = 0;
   state.RFWaits = 0;
   state.waitingForRF = 0;
+  loops = 0;
   #endif
   return true;
 }

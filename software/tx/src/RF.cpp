@@ -2,6 +2,9 @@
 
 SX128XLT LT;
 
+unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
+
+
 unsigned long TMPeriod = 500;
 unsigned long lastTMPacketReceived = 0;
 
@@ -9,8 +12,6 @@ unsigned int resetTMCounter = 0;
 
 unsigned int RXIdentityMask = 0xFF;
 unsigned int batteryVoltageMask = 0xFF00;
-
-unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 
 void resetTM() {
   state.boardVoltage = 0.0;
@@ -26,6 +27,11 @@ void hardReset() {
   LT.config();
 }
 
+bool checkRXTXDone() {
+  uint16_t IRQStatus = LT.readIrqStatus();
+  return (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+}
+
 bool waitForRFReady() {
   long timeout = 10000; // 10ms
   long ellapsed = 0;
@@ -34,9 +40,7 @@ bool waitForRFReady() {
   bool RFBusyLow = false;
   while (!RFAvailable && (timeout-ellapsed) > 0) {
     RFBusyLow = RFBusyLow || !digitalRead(RFBUSY);
-    uint16_t IRQStatus = LT.readIrqStatus();
-    bool RXTXDone = (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
-    RFAvailable = RFBusyLow && RXTXDone;
+    RFAvailable = RFBusyLow && checkRXTXDone();
     ellapsed = micros() - start;
   }
   state.waitingForRF+=ellapsed;
