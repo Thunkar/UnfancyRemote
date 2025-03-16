@@ -7,6 +7,9 @@ unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 unsigned int throttleMask = 0xFFF;
 unsigned int TMRequestMask = 0x1000;
 
+#define RX_IRQ_MASK 0x4022
+#define TX_IRQ_MASK 0x4001
+
 void hardReset() {
   state.currentSNR = -100;
   state.currentRSSI = -100;
@@ -15,20 +18,21 @@ void hardReset() {
   LT.config();
 }
 
-bool checkRXTXDone() {
+bool checkRFDone(uint16_t IRQMask) {
   uint16_t IRQStatus = LT.readIrqStatus();
-  return (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+  return IRQStatus & IRQMask;
 }
 
-bool waitForRFReady(long timeoutMs) {
+bool waitForRFReady(long timeoutMs, uint16_t IRQMask) {
   long timeout = timeoutMs*1000;
   long ellapsed = 0;
   bool RFAvailable = false;
   unsigned long start = micros();
   while (!RFAvailable && (timeout-ellapsed) > 0) {
-    RFAvailable = !digitalRead(RFBUSY) && checkRXTXDone();
+    RFAvailable = !digitalRead(RFBUSY) && checkRFDone(IRQMask);
     ellapsed = micros() - start;
   }
+  LT.setMode(MODE_STDBY_RC);
   state.waitingForRF+=ellapsed;
   state.RFWaits++;
   return RFAvailable;
@@ -88,7 +92,7 @@ void sendTMPacket() {
   LT.writeUint16(encodedBoardVoltage+config.identity);                            
   LT.endWriteSXBuffer();   
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
-  if(!waitForRFReady(10)) {
+  if(!waitForRFReady(15, TX_IRQ_MASK)) {
     setError("TX timeout");
     hardReset();
     return;
@@ -99,7 +103,7 @@ void sendTMPacket() {
 bool receiveThrottlePacket(unsigned long now) {
   clearError();
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(40)) {
+  if(!waitForRFReady(20, RX_IRQ_MASK)) {
     setError("RX timeout");
     return false;
   }

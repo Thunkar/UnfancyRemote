@@ -26,7 +26,7 @@ void ONSequence() {
 }
 
 int LAST_TASK;
-const unsigned long periods[] = { 10, 20, 1000, 2000, 50 };
+const unsigned long periods[] = { 20, 20, 1000, 2000, 50 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0 };
 unsigned long successes[] = { 0, 0, 0, 0, 0 };
 unsigned long failures[] = { 0, 0, 0, 0, 0 };
@@ -119,7 +119,7 @@ void loop() {
       }
       unsigned long end = micros();
       times[i]+=(end - start);
-      lastRun[i] = end/1000;
+      lastRun[i] = startMillis;
     }
   }
   loops++;
@@ -166,6 +166,7 @@ void setup() {
   }
 
   LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setHighSensitivity();
   LT.clearIrqStatus(IRQ_RADIO_ALL);
 
   #ifdef DEBUG

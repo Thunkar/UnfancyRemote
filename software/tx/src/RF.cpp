@@ -13,6 +13,9 @@ unsigned int resetTMCounter = 0;
 unsigned int RXIdentityMask = 0xFF;
 unsigned int batteryVoltageMask = 0xFF00;
 
+#define RX_IRQ_MASK 0x4022
+#define TX_IRQ_MASK 0x4001
+
 void resetTM() {
   state.boardVoltage = 0.0;
   state.boardCellVoltage = 0.0;
@@ -27,20 +30,21 @@ void hardReset() {
   LT.config();
 }
 
-bool checkRXTXDone() {
+bool checkRFDone(uint16_t IRQMask) {
   uint16_t IRQStatus = LT.readIrqStatus();
-  return (IRQStatus & 0x4022 ) || (IRQStatus & 0x4001);   //IRQs going active
+  return IRQStatus & IRQMask;
 }
 
-bool waitForRFReady(long timeoutMs) {
+bool waitForRFReady(long timeoutMs, uint16_t IRQMask) {
   long timeout = timeoutMs*1000;
   long ellapsed = 0;
   bool RFAvailable = false;
   unsigned long start = micros();
   while (!RFAvailable && (timeout-ellapsed) > 0) {
-    RFAvailable = !digitalRead(RFBUSY) && checkRXTXDone();
+    RFAvailable = !digitalRead(RFBUSY) && checkRFDone(IRQMask);
     ellapsed = micros() - start;
   }
+  LT.setMode(MODE_STDBY_RC);
   state.waitingForRF+=ellapsed;
   state.RFWaits++;
   return RFAvailable;
@@ -92,7 +96,7 @@ void processTMPacket() {
 void receiveTMPacket() {
   clearError();
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(20)) {
+  if(!waitForRFReady(20, RX_IRQ_MASK)) {
     setError("RX timeout");
     hardReset();
     return;
@@ -110,7 +114,7 @@ bool sendThrottlePacket(unsigned long now) {
   LT.endWriteSXBuffer();       
   LT.transmitSXBufferIRQ(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
   if(requestTM) {
-    if(!waitForRFReady(10)) {
+    if(!waitForRFReady(15, TX_IRQ_MASK)) {
       setError("TX timeout");
       return false;
     }

@@ -148,7 +148,7 @@ void loop() {
       }
       unsigned long end = micros();
       times[i]+=(end - start);
-      lastRun[i] = end/1000;
+      lastRun[i] = startMillis;
     }
   }
   loops++;
@@ -200,6 +200,7 @@ void setup() {
   }
 
   LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setHighSensitivity();
   LT.clearIrqStatus(IRQ_RADIO_ALL);
 
   #ifdef DEBUG
