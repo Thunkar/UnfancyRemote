@@ -15,7 +15,12 @@ void hardReset() {
   state.currentRSSI = -100;
   state.isConnected = false;
   state.encodedThrottleValue = ENCODED_HALF;
+  LT.resetDevice();
   LT.config();
+}
+
+bool checkRFBusy() {
+  return !digitalRead(RFBUSY);
 }
 
 bool checkRFDone(uint16_t IRQMask) {
@@ -29,7 +34,7 @@ bool waitForRFReady(long timeoutMs, uint16_t IRQMask) {
   bool RFAvailable = false;
   unsigned long start = micros();
   while (!RFAvailable && (timeout-ellapsed) > 0) {
-    RFAvailable = !digitalRead(RFBUSY) && checkRFDone(IRQMask);
+    RFAvailable = checkRFBusy() && checkRFDone(IRQMask);
     ellapsed = micros() - start;
   }
   LT.setMode(MODE_STDBY_RC);
@@ -92,9 +97,8 @@ void sendTMPacket() {
   LT.writeUint16(encodedBoardVoltage+config.identity);                            
   LT.endWriteSXBuffer();   
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
-  if(!waitForRFReady(15, TX_IRQ_MASK)) {
+  if(!waitForRFReady(12, TX_IRQ_MASK)) {
     setError("TX timeout");
-    hardReset();
     return;
   }
   state.TMPackets++;
@@ -102,8 +106,13 @@ void sendTMPacket() {
 
 bool receiveThrottlePacket(unsigned long now) {
   clearError();
+  if(!checkRFBusy()) {
+    setError("RF busy");
+    hardReset();
+    return false;
+  }
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(20, RX_IRQ_MASK)) {
+  if(!waitForRFReady(12, RX_IRQ_MASK)) {
     setError("RX timeout");
     return false;
   }
@@ -112,5 +121,4 @@ bool receiveThrottlePacket(unsigned long now) {
     sendTMPacket();
   }
   return true;
-  
 }
