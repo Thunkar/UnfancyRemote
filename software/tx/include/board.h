@@ -45,7 +45,7 @@ const float BOARD_BATTERY_CELL_V_THR[] = { 4.0, 3.8, 3.7, 3.5, 3.3 };
 #define LORA_DEVICE DEVICE_SX1280    
 #define Offset 0                                 //offset frequency for calibration purposes  
 #define Bandwidth LORA_BW_1600                   //LoRa bandwidth
-#define SpreadingFactor LORA_SF9                 //LoRa spreading factor
+#define SpreadingFactor LORA_SF7                 //LoRa spreading factor
 #define CodeRate LORA_CR_4_7                     //LoRa coding rate
 
 const unsigned int throttlePacketLength = 3;                  //packet length is fixed 

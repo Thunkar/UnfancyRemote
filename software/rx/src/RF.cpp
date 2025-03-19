@@ -10,13 +10,17 @@ unsigned int TMRequestMask = 0x1000;
 #define RX_IRQ_MASK 0x4022
 #define TX_IRQ_MASK 0x4001
 
-void hardReset() {
-  state.currentSNR = -100;
-  state.currentRSSI = -100;
-  state.isConnected = false;
-  state.encodedThrottleValue = ENCODED_HALF;
-  LT.resetDevice();
-  LT.config();
+unsigned int resetCounter = 0;
+
+void connectionReset() {
+  resetCounter++;
+  if(resetCounter >= 10) {
+    setError("Connection lost");
+    state.currentSNR = -100;
+    state.currentRSSI = -100;
+    state.isConnected = false;
+    state.encodedThrottleValue = ENCODED_HALF;
+  }
 }
 
 bool checkRFBusy() {
@@ -51,6 +55,7 @@ bool checkRXIRQError() {
 bool processReceivedPacket() {
   if(!checkRXIRQError()) {
     setError("IRQ Error");
+    LT.clearIrqStatus(IRQ_RADIO_ALL);
     return false;
   }                                               
   unsigned int TXIdentity = -1;
@@ -85,6 +90,7 @@ bool processReceivedPacket() {
     state.currentSNR = measuredSNR;
     state.currentRSSI = measuredRSSI;
     state.encodedThrottleValue = (receivedData & throttleMask);
+    resetCounter = 0;
     TMRequest = (receivedData & TMRequestMask) >> 12;
   }
   return TMRequest;
@@ -97,7 +103,7 @@ void sendTMPacket() {
   LT.writeUint16(encodedBoardVoltage+config.identity);                            
   LT.endWriteSXBuffer();   
   LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
-  if(!waitForRFReady(12, TX_IRQ_MASK)) {
+  if(!waitForRFReady(10, TX_IRQ_MASK)) {
     setError("TX timeout");
     return;
   }
@@ -106,14 +112,9 @@ void sendTMPacket() {
 
 bool receiveThrottlePacket(unsigned long now) {
   clearError();
-  if(!checkRFBusy()) {
-    setError("RF busy");
-    hardReset();
-    return false;
-  }
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(12, RX_IRQ_MASK)) {
-    setError("RX timeout");
+  if(!waitForRFReady(10, RX_IRQ_MASK)) {
+    connectionReset();
     return false;
   }
   bool TMRequest = processReceivedPacket();

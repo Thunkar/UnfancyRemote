@@ -61,6 +61,7 @@ bool checkRXIRQError() {
 void processTMPacket() {    
   if(!checkRXIRQError()) {
     setError("IRQ Error");
+    LT.clearIrqStatus(IRQ_RADIO_ALL);
     return;
   }   
   unsigned int RXIdentity = -1;
@@ -99,7 +100,7 @@ void processTMPacket() {
 void receiveTMPacket() {
   clearError();
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(12, RX_IRQ_MASK)) {
+  if(!waitForRFReady(15, RX_IRQ_MASK)) {
     setError("RX timeout");
     hardReset();
     return;
@@ -117,7 +118,7 @@ bool sendThrottlePacket(unsigned long now) {
   LT.endWriteSXBuffer();       
   LT.transmitSXBufferIRQ(0, throttlePacketLength, 0, TXpower, NO_WAIT);  
   if(requestTM) {
-    if(!waitForRFReady(12, TX_IRQ_MASK)) {
+    if(!waitForRFReady(10, TX_IRQ_MASK)) {
       setError("TX timeout");
       return false;
     }

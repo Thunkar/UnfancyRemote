@@ -51,6 +51,8 @@ unsigned long lastRun[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long successes[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long failures[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 unsigned long times[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long maxTimes[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned long minTimes[] = { 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000 };
 unsigned long loops = 0;
 
 const char *taskNames[] = { "sendThrottlePacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "printStats", "doServerWork" };
@@ -85,20 +87,26 @@ bool printStats(unsigned long now) {
   Serial.print(config.calAcc);
   Serial.print(F(" | Inverted: "));
   Serial.println(config.inverted ? "y" : "n");
-  Serial.println(F("---------------------- TASKS ----------------------"));
+  Serial.println("");
+  char titleBuffer[150];
+  sprintf(titleBuffer, "%-20s | %8s | %7s | %10s | %7s | %3s", "Task", "Freq", "Min", "Mean", "Max", "Ratio");
+  Serial.println(titleBuffer);
+  Serial.println(F("-----------------------------------------------------------------------"));
   for(int i = 0; i <= LAST_TASK; i++) {
-    char prBuffer[100];
+    char prBuffer[150];
     long executions = successes[i] + failures[i];
     float frequency = executions / ellapsed;
     float mean = times[i] / (float)executions;
-    sprintf(prBuffer, "%-20s | %6.2fHz | ~%7.2fus | %.2f", taskNames[i], frequency, mean, successes[i]/(float)executions);
+    sprintf(prBuffer, "%-20s | %6.2fHz | %5dus | ~%7.2fus | %5dus | %.2f", taskNames[i], frequency, minTimes[i], mean, maxTimes[i], successes[i]/(float)executions);
     Serial.print(prBuffer);
     Serial.println("");
     successes[i] = 0;
     failures[i] = 0;
     times[i] = 0;
+    minTimes[i] = 10000000;
+    maxTimes[i] = 0;
   }
-  Serial.println(F("---------------------------------------------------"));
+  Serial.println(F("------------------------------------------------------------------------"));
   float loopFrequency = loops / ellapsed;
   Serial.print(F("Loop frequency: "));
   Serial.print(loopFrequency);
@@ -147,7 +155,14 @@ void loop() {
         failures[i]++;
       }
       unsigned long end = micros();
-      times[i]+=(end - start);
+      unsigned long ellapsed = end - start;
+      times[i]+=ellapsed;
+      if(maxTimes[i] < ellapsed) {
+        maxTimes[i] = ellapsed;
+      } 
+      if (minTimes[i] > ellapsed) {
+        minTimes[i] = ellapsed;
+      }
       lastRun[i] = startMillis;
     }
   }
@@ -169,6 +184,8 @@ void setup() {
   pinMode(MOTOR, OUTPUT);
   pinMode(BUTTON, INPUT);
   pinMode(RFBUSY, INPUT);
+  pinMode(NRESET, OUTPUT);
+
 
   ONSequence();
 
@@ -200,8 +217,6 @@ void setup() {
   }
 
   LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-  LT.setHighSensitivity();
-  LT.clearIrqStatus(IRQ_RADIO_ALL);
 
   #ifdef DEBUG
   Serial.println(F("Remote ready"));
