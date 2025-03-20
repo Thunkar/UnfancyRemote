@@ -11,10 +11,11 @@ unsigned int TMRequestMask = 0x1000;
 #define TX_IRQ_MASK 0x4001
 
 unsigned int resetCounter = 0;
+const unsigned int MAX_RESET_COUNTER = 200 / 20; // 200ms desired timeout / 20ms per expected packet period
 
 void connectionReset() {
   resetCounter++;
-  if(resetCounter >= 10) {
+  if(resetCounter >= MAX_RESET_COUNTER) {
     setError("Connection lost");
     state.currentSNR = -100;
     state.currentRSSI = -100;
