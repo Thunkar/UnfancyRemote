@@ -55,7 +55,6 @@ const float BOARD_BATTERY_CELL_V_THR[] = { 4.0, 3.8, 3.7, 3.5, 3.3 };
 #define SpreadingFactor LORA_SF7                 
 #define CodeRate LORA_CR_4_8  
 #define PREAMBLE_LENGTH 8
-
-const unsigned int THROTTLE_PACKET_LENGTH = 3;                  
-const unsigned int TM_PACKET_LENGTH = 2;
-const unsigned int TX_POWER = 10;                      
+#define TX_POWER 12                      
+#define THROTTLE_PACKET_LENGTH 3                 
+#define TM_PACKET_LENGTH 2

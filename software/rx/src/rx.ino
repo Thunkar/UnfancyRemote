@@ -108,6 +108,7 @@ void setup() {
   }
 
   LT.setupLoRa(config.frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setPeriodBase(PERIODBASE_15_US);
 
   #ifdef DEBUG
   Serial.println(F("Receiver ready"));

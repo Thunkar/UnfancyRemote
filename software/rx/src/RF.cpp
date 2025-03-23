@@ -40,8 +40,10 @@ bool waitForRFReady(long timeoutMs, int waitFor) {
   bool RFAvailable = false;
   unsigned long start = micros();
   uint16_t IRQMask = waitFor == RX_WAIT ? RX_IRQ_MASK : TX_IRQ_MASK;
+  bool notBusy = false;
   while (!RFAvailable && (timeout-ellapsed) > 0) {
-    RFAvailable = checkRFBusy() && checkRFDone(IRQMask);
+    notBusy = notBusy || checkRFBusy();
+    RFAvailable = notBusy && checkRFDone(IRQMask);
     ellapsed = micros() - start;
   }
   LT.setMode(MODE_STDBY_RC);
@@ -115,7 +117,7 @@ bool receiveThrottlePacket(unsigned long now) {
   clearError();
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(10, RX_WAIT)) {
+  if(!waitForRFReady(5, RX_WAIT)) {
     connectionReset();
     return false;
   }
