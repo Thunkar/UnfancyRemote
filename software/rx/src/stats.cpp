@@ -16,6 +16,9 @@ Stats stats = {
     // Packets
     0,
     0,
+    0,
+    0,
+    0,
     // RFWaits
     0,
     0,
@@ -36,6 +39,9 @@ void resetStats() {
     }
     stats.loops = 0;
     stats.packets = 0;
+    stats.packetTimes = 0;
+    stats.maxPacketTime = 0;
+    stats.minPacketTime = 10000000;
     stats.TMPackets = 0;
     stats.timeWaitingForRX = 0;
     stats.timeWaitingForTX = 0;
@@ -52,9 +58,8 @@ bool printStats(unsigned long now) {
     Serial.println(stats.errorReason);
     Serial.println(F("//////////////////////"));
   }
-  Serial.print(F("Frequency: "));
-  Serial.print(config.frequency);
-  Serial.println(F("Hz"));
+  Serial.print("Connected: ");
+  Serial.println(state.isConnected);
   float ellapsed = (now - state.lastRun[4])/1000;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
@@ -65,6 +70,9 @@ bool printStats(unsigned long now) {
   Serial.print(F("dB | RSSI: "));
   Serial.print(state.currentRSSI);
   Serial.println(F("dBm"));
+  Serial.print(F("Frequency: "));
+  Serial.print(config.frequency);
+  Serial.println(F("Hz"));
   Serial.println("");
   char titleBuffer[150];
   sprintf(titleBuffer, "%-23s | %8s | %8s | %11s | %8s | %3s", "Task", "Freq", "Min", "Mean", "Max", "Ratio");
@@ -90,6 +98,10 @@ bool printStats(unsigned long now) {
   int packetsPerSecond = round(stats.packets / ellapsed);
   Serial.print(F("Packets/s: "));
   Serial.println(packetsPerSecond);
+  char packetTimesBuffer[50];
+  Serial.print(F("Packet timings (min/mean/max): "));
+  sprintf(packetTimesBuffer, "%5.2fms / ~%5.2fms / %5.2fms", stats.minPacketTime / 1000.0, stats.packetTimes / (float)(stats.packets * 1000), stats.maxPacketTime / 1000.0);
+  Serial.println(packetTimesBuffer);
   int TMPacketsPerSecond = round(stats.TMPackets / ellapsed);
   Serial.print(F("TM packets/s: "));
   Serial.println(TMPacketsPerSecond);
@@ -116,6 +128,7 @@ bool printStats(unsigned long now) {
   Serial.println("");
   Serial.print(F("Errors: "));
   Serial.println(stats.errors);
+  Serial.println("");
   #endif
   resetStats();
   return true;

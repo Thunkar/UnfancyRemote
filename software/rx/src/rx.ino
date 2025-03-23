@@ -26,7 +26,7 @@ void ONSequence() {
   };
 }
 
-const unsigned long periods[] = { 20, 20, 1000, 50, 2000 };
+const unsigned long periods[] = { 10, 10, 1000, 50, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0 };
 unsigned long successes[] = { 0, 0, 0, 0, 0 };
 unsigned long failures[] = { 0, 0, 0, 0, 0 };
@@ -48,6 +48,7 @@ void loop() {
         stats.successes[i]++;
         state.lastRun[i] = startMillis;
       } else {
+        state.lastRun[i] = startMillis + (periods[i]/2);
         stats.failures[i]++;
       }
       unsigned long end = micros();

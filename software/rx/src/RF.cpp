@@ -12,12 +12,12 @@ unsigned int TMRequestMask = 0x1000;
 #define TX_IRQ_MASK IRQ_TX_DONE + IRQ_RX_TX_TIMEOUT
 
 unsigned int resetCounter = 0;
-const unsigned int MAX_RESET_COUNTER = 200 / 20; // 200ms desired timeout / 20ms per expected packet period
+const unsigned int RX_TIMEOUT = 200; // 200ms timeout
 
-void connectionReset() {
-  resetCounter++;
-  if(resetCounter >= MAX_RESET_COUNTER) {
-    setError("Connection lost");
+unsigned long lastPacketTime = 0;
+
+void checkRXTimeout() {
+  if((micros() - lastPacketTime) > RX_TIMEOUT*1000) {
     state.currentSNR = -100;
     state.currentRSSI = -100;
     state.isConnected = false;
@@ -63,38 +63,49 @@ bool checkRXIRQError() {
 }
 
 bool processReceivedPacket() {
-  if(!checkRXIRQError()) {
-    setError("IRQ Error");
-    return false;
-  }                                               
   unsigned int TXIdentity = -1;
   unsigned int receivedData = ENCODED_HALF;
   bool TMRequest = false;
   int measuredSNR = 0;
   long measuredRSSI = 0;
-  
-  LT.startReadSXBuffer(0);                
-  TXIdentity = LT.readUint8();         
-  receivedData = LT.readUint16();     
-  LT.endReadSXBuffer(); 
-  measuredRSSI = LT.readPacketRSSI();      
-  measuredSNR = LT.readPacketSNR(); 
-      
-  if(TXIdentity != config.identity) {
-    char reason[30];
-    sprintf(reason, "Incorrect identity %3d", TXIdentity);
-    setError(reason);
-  }
+
+  if(!checkRXIRQError()) {
+    setError("IRQ Error");
+  } else {
+    LT.startReadSXBuffer(0);                
+    TXIdentity = LT.readUint8();         
+    receivedData = LT.readUint16();     
+    LT.endReadSXBuffer(); 
+    measuredRSSI = LT.readPacketRSSI();      
+    measuredSNR = LT.readPacketSNR(); 
+        
+    if(TXIdentity != config.identity) {
+      char reason[30];
+      sprintf(reason, "Incorrect identity %3d", TXIdentity);
+      setError(reason);
+    }
+  } 
   
   if(!state.error) {
-    state.isConnected = true;
+    unsigned long now = micros();
+    unsigned long ellapsed = now - lastPacketTime;
     stats.packets++;
+    stats.packetTimes+=ellapsed;
+    if(stats.maxPacketTime < ellapsed) {
+      stats.maxPacketTime = ellapsed;
+    }
+    if(stats.minPacketTime > ellapsed) {
+      stats.minPacketTime = ellapsed;
+    }
+    lastPacketTime = now;
+    state.isConnected = true;
     state.currentSNR = measuredSNR;
     state.currentRSSI = measuredRSSI;
     state.encodedThrottleValue = (receivedData & throttleMask);
     resetCounter = 0;
     TMRequest = (receivedData & TMRequestMask) >> 12;
   }
+
   return TMRequest;
 }
 
@@ -106,7 +117,7 @@ void sendTMPacket() {
   LT.endWriteSXBuffer();   
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
-  if(!waitForRFReady(5, TX_WAIT)) {
+  if(!waitForRFReady(3, TX_WAIT)) {
     setError("TX timeout");
     return;
   }
@@ -114,11 +125,11 @@ void sendTMPacket() {
 }
 
 bool receiveThrottlePacket(unsigned long now) {
+  checkRXTimeout();
   clearError();
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(5, RX_WAIT)) {
-    connectionReset();
+  if(!waitForRFReady(7, RX_WAIT)) {
     return false;
   }
   bool TMRequest = processReceivedPacket();

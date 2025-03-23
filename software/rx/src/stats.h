@@ -14,6 +14,9 @@ struct Stats {
     unsigned long minTimes[N_TASKS];
     unsigned long loops;
     unsigned long packets;
+    unsigned long packetTimes;
+    unsigned long maxPacketTime;
+    unsigned long minPacketTime;
     unsigned long TMPackets;
     unsigned long timeWaitingForTX;
     unsigned long timeWaitingForRX;

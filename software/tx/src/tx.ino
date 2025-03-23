@@ -45,7 +45,7 @@ void ONSequence() {
     }
 }
 
-const unsigned long periods[N_TASKS] = { 20, 10, 200, 1000, 100, 50, 20, 50, 2000 };
+const unsigned long periods[N_TASKS] = { 10, 10, 200, 1000, 100, 50, 20, 50, 2000 };
 
 typedef bool (*task)(unsigned long);
 
@@ -61,6 +61,7 @@ void loop() {
         state.lastRun[i] = startMillis;
       } else {
         stats.failures[i]++;
+        state.lastRun[i] = startMillis + (periods[i]/2);
       }
       unsigned long end = micros();
       unsigned long ellapsed = end - start;

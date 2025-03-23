@@ -3,6 +3,7 @@
 SX128XLT LT;
 
 unsigned long TMPeriod = 500;
+unsigned long lastTMPacketAttempt = 0;
 unsigned long lastTMPacketReceived = 0;
 
 unsigned int resetTMCounter = 0;
@@ -16,16 +17,13 @@ unsigned int batteryVoltageMask = 0xFF00;
 #define RX_IRQ_MASK IRQ_RX_DONE + IRQ_RX_TX_TIMEOUT
 #define TX_IRQ_MASK IRQ_TX_DONE + IRQ_RX_TX_TIMEOUT
 
-void resetTM() {
-  state.boardVoltage = 0.0;
-  state.boardCellVoltage = 0.0;
-  state.isConnected = false;
-}
+const unsigned int RX_TIMEOUT = 5000;
 
-void hardReset() {
-  resetTMCounter++;
-  if(resetTMCounter >= 5) {
-    resetTM();
+void checkRXTimeout() {
+  if((micros() - lastTMPacketReceived) > RX_TIMEOUT*1000) {
+    state.boardVoltage = 0.0;
+    state.boardCellVoltage = 0.0;
+    state.isConnected = false;
   }
 }
 
@@ -67,26 +65,23 @@ bool checkRXIRQError() {
 }
 
 void processTMPacket() {    
-  if(!checkRXIRQError()) {
-    setError("IRQ Error");
-    return;
-  }   
   unsigned int RXIdentity = -1;
   unsigned int receivedData = 0;
 
-  int measuredSNR = 0;
-  long measuredRSSI = 0;
-  LT.startReadSXBuffer(0);                
-  receivedData = LT.readUint16();
-  RXIdentity = receivedData & RXIdentityMask;
-  LT.endReadSXBuffer(); 
-  
-  if(config.identity != RXIdentity) {
-    char reason[50];
-    sprintf(reason, "Incorrect identity %3d", config.identity);
-    setError(reason);
-  }
-
+  if(!checkRXIRQError()) {
+    setError("IRQ Error");
+  } else {
+    LT.startReadSXBuffer(0);                
+    receivedData = LT.readUint16();
+    RXIdentity = receivedData & RXIdentityMask;
+    LT.endReadSXBuffer(); 
+    
+    if(config.identity != RXIdentity) {
+      char reason[50];
+      sprintf(reason, "Incorrect identity %3d", config.identity);
+      setError(reason);
+    }
+  } 
   
   if(!state.error) {
     stats.TMPackets++;
@@ -95,38 +90,38 @@ void processTMPacket() {
     state.boardCellVoltage = state.boardVoltage/float(config.cellN);
     state.isConnected = true;
     resetTMCounter = 0;
-  } 
+    lastTMPacketReceived = micros();
+  }
 }
 
 void receiveTMPacket() {
   clearError();
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(5, RX_WAIT)) {
+  if(!waitForRFReady(3, RX_WAIT)) {
     setError("RX timeout");
-    hardReset();
-    return;
   }
   processTMPacket();
 }
 
 bool sendThrottlePacket(unsigned long now) {
+  checkRXTimeout();
   clearError();
   LT.startWriteSXBuffer(0);                     
   LT.writeUint8(config.identity); 
-  bool requestTM = (now - lastTMPacketReceived) > TMPeriod;
+  bool requestTM = (now - lastTMPacketAttempt) > TMPeriod;
   unsigned int encodedData = (requestTM << 12) + state.encodedThrottleValue;                   
   LT.writeUint16(encodedData);          
   LT.endWriteSXBuffer();     
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);  
   LT.transmitSXBufferIRQ(0, THROTTLE_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
   if(requestTM) {
-    if(!waitForRFReady(5, TX_WAIT)) {
+    if(!waitForRFReady(3, TX_WAIT)) {
       setError("TX timeout");
       return false;
     }
     receiveTMPacket();
-    lastTMPacketReceived = now;
+    lastTMPacketAttempt = now;
   }
   stats.packets++;
   return true;                  

@@ -52,6 +52,8 @@ bool printStats(unsigned long now) {
     Serial.println(stats.errorReason);
     Serial.println(F("//////////////////////"));
   }
+  Serial.print("Connected: ");
+  Serial.println(state.isConnected);
   float ellapsed = (now - state.lastRun[8])/1000;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
@@ -126,6 +128,7 @@ bool printStats(unsigned long now) {
   Serial.println("");
   Serial.print(F("Errors: "));
   Serial.println(stats.errors);
+  Serial.println("");
   #endif
   resetStats();
   return true;
