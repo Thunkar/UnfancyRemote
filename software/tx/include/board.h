@@ -1,5 +1,9 @@
 #pragma once
-//*******  Setup hardware pin definitions here ! ***************
+
+// Log to serial
+#define DEBUG
+
+// HW Pins
 
 const int NSS = 7;                           //select on LoRa device
 const int NRESET = 9;                        //reset on LoRa device
@@ -18,7 +22,7 @@ const int MOTOR = 20;
 const int VBAT = 2;
 const int THR2 = 1;
 
-//*******  Setup constants here ! ***************
+// General constants
 
 const unsigned long R2 = 6800;
 const unsigned long R1 = 100000;
@@ -28,26 +32,30 @@ const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
-
 // Time in ms to hold the button to enter setup mode
 
-const int setupModeDelay = 5000; 
+const int SETUP_MODE_DELAY = 5000; 
+
+// Scheduler
+
+const int N_TASKS = 9;
 
 // Battery thresholds: Define what each LED of the remote means in terms of cell voltage, both for the remote and the board. First level is 4 LEDs ON, second one 3, etc. The last level will make the remote rumble and the last LED blink. WARNING: a maximum board voltage of 12S (50.4V) is measurable.
 const int BATTERY_THRESHOLDS_LENGTH = 5;
 const float REMOTE_BATTERY_CELL_V_THR[] = { 4.0, 3.9, 3.8, 3.7, 3.6 };
 const float BOARD_BATTERY_CELL_V_THR[] = { 4.0, 3.8, 3.7, 3.5, 3.3 };
 
-//*******  Setup LoRa Test Parameters Here ! ***************
+// Lora params
 
 #define CH_BANDWIDTH_HZ 2500000
 #define BASE_FREQUENCY 2400000000
 #define LORA_DEVICE DEVICE_SX1280    
-#define Offset 0                                 //offset frequency for calibration purposes  
-#define Bandwidth LORA_BW_1600                   //LoRa bandwidth
-#define SpreadingFactor LORA_SF7                 //LoRa spreading factor
-#define CodeRate LORA_CR_4_7                     //LoRa coding rate
+#define Offset 0                                 
+#define Bandwidth LORA_BW_1600                  
+#define SpreadingFactor LORA_SF7                 
+#define CodeRate LORA_CR_4_8  
+#define PREAMBLE_LENGTH 8
 
-const unsigned int throttlePacketLength = 3;                  //packet length is fixed 
-const unsigned int TMPacketLength = 2;
-const unsigned int TXpower = 10;                       //LoRa transmit power in dBm
+const unsigned int THROTTLE_PACKET_LENGTH = 3;                  
+const unsigned int TM_PACKET_LENGTH = 2;
+const unsigned int TX_POWER = 10;                      

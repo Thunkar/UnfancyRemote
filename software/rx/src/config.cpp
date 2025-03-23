@@ -1,6 +1,6 @@
 #include "config.h"
 
-Config config { 15, 224, 12 };
+Config config { 15, 224, 12, 0 };
 
 void writeUInt(int address, unsigned int number){ 
   EEPROM.write(address, number >> 8);
@@ -15,6 +15,7 @@ void readConfig() {
   config.channel = readUInt(0);
   config.identity = readUInt(2);
   config.cellN = readUInt(4);
+  config.frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 }
 
 void writeConfig() {

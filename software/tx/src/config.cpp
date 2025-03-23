@@ -1,6 +1,6 @@
 #include "config.h"
 
-Config config { 15, 224, 12, 0, 0, 0, 0, false, true };
+Config config { 15, 224, 12, 0, 0, 0, 0, false, true, 0 };
 
 void writeUInt(int address, unsigned int number){ 
   EEPROM.write(address, number >> 8);
@@ -16,6 +16,7 @@ void readConfig() {
   config.identity = readUInt(12);
   config.cellN = readUInt(14);
   config.isDual = readUInt(16);
+  config.frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
 }
 
 void readCalibration() {

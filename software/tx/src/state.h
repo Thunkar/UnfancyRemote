@@ -22,14 +22,12 @@ struct State {
     float boardCellVoltage;
     // RF
     bool isConnected;
-    unsigned long packets;
-    unsigned long TMPackets;
-    unsigned long waitingForRF;
-    unsigned long RFWaits;
-    // Errors 
+    // Last time tasks were run in ms
+    unsigned long lastRun[N_TASKS];
+    // Active tasks
+    bool activeTasks[N_TASKS];
+    // Error
     bool error;
-    int errors;
-    char errorReason[30];
 };
 
 extern State state;

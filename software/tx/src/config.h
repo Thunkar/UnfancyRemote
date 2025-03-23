@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
+#include "board.h"
 
 struct Config {
     unsigned int channel;
@@ -13,6 +14,7 @@ struct Config {
     unsigned int centerBrake;
     unsigned int inverted;
     unsigned int isDual;
+    unsigned long frequency;
 };
 
 extern Config config;

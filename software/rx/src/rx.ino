@@ -7,7 +7,8 @@
 #include "PPM.h"
 #include "battery.h"
 #include "wifi_setup.h"
-#include "error_handling.h"
+#include "stats.h"
+#include "error_handling.h"	
 
 #define DEBUG
 
@@ -16,7 +17,7 @@ void ONSequence() {
   unsigned long lastCheck = now;
   digitalWrite(LED, HIGH);
   while(digitalRead(BUTTON)){
-    state.setupMode = (lastCheck - now) > setupModeDelay;
+    state.setupMode = (lastCheck - now) > SETUP_MODE_DELAY;
     lastCheck = millis();
     if(state.setupMode) {
       digitalWrite(LED, LOW);
@@ -25,8 +26,7 @@ void ONSequence() {
   };
 }
 
-int LAST_TASK;
-const unsigned long periods[] = { 10, 20, 1000, 2000, 50 };
+const unsigned long periods[] = { 20, 20, 1000, 50, 2000 };
 unsigned long lastRun[] = { 0, 0, 0, 0, 0 };
 unsigned long successes[] = { 0, 0, 0, 0, 0 };
 unsigned long failures[] = { 0, 0, 0, 0, 0 };
@@ -35,110 +35,33 @@ unsigned long maxTimes[] = { 0, 0, 0, 0, 0 };
 unsigned long minTimes[] = { 10000000, 10000000, 10000000, 10000000, 10000000 };
 unsigned long loops = 0;
 
-char *taskNames[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "printStats", "doServerWork" };
-
-bool printStats(unsigned long now) {
-  #ifdef DEBUG
-  if(state.errors > 0) {
-    Serial.println(F("////////ERROR//////////"));
-    Serial.println(state.errorReason);
-    Serial.println(F("//////////////////////"));
-  }
-  Serial.print(F("Frequency: "));
-  Serial.print(frequency);
-  Serial.println(F("Hz"));
-  float ellapsed = (now - lastRun[3])/1000;
-  Serial.print(F("Ellapsed: "));
-  Serial.print(ellapsed);
-  Serial.print(F("s | VBat: "));
-  Serial.print(state.boardVoltage);
-  Serial.print(F("V | SNR: "));
-  Serial.print(state.currentSNR);
-  Serial.print(F("dB | RSSI: "));
-  Serial.print(state.currentRSSI);
-  Serial.println(F("dBm"));
-  Serial.println("");
-  char titleBuffer[150];
-  sprintf(titleBuffer, "%-23s | %8s | %8s | %11s | %8s | %3s", "Task", "Freq", "Min", "Mean", "Max", "Ratio");
-  Serial.println(titleBuffer);
-  Serial.println(F("-------------------------------------------------------------------------------"));
-  for(int i = 0; i <= LAST_TASK; i++) {
-    char prBuffer[150];
-    long executions = successes[i] + failures[i];
-    float frequency = executions / ellapsed;
-    float mean = times[i] / (float)executions;
-    sprintf(prBuffer, "%-23s | %6.2fHz | %6dus | ~%8.2fus | %6dus | %.2f", taskNames[i], frequency, minTimes[i], mean, maxTimes[i], successes[i]/(float)executions);
-    Serial.print(prBuffer);
-    Serial.println("");
-    successes[i] = 0;
-    failures[i] = 0;
-    times[i] = 0;
-    minTimes[i] = 10000000;
-    maxTimes[i] = 0;
-  }
-  Serial.println(F("-------------------------------------------------------------------------------"));
-  float loopFrequency = loops / ellapsed;
-  Serial.print(F("Loop frequency: "));
-  Serial.print(loopFrequency);
-  Serial.println(F("Hz"));
-  int packetsPerSecond = round(state.packets / ellapsed);
-  Serial.print(F("Packets/s: "));
-  Serial.println(packetsPerSecond);
-  int TMPacketsPerSecond = round(state.TMPackets / ellapsed);
-  Serial.print(F("TM packets/s: "));
-  Serial.println(TMPacketsPerSecond);
-  Serial.println(F("RF waits: "));
-  float RFWaitMeanUs = state.waitingForRF / state.RFWaits;
-  char meanTimeWaitingBuffer[50];
-  sprintf(meanTimeWaitingBuffer, "%-40s %.2fus", "- Mean time waiting:", RFWaitMeanUs); 
-  Serial.print(meanTimeWaitingBuffer);
-  Serial.println("");
-  float RFWaitsPerSecond = state.RFWaits / ellapsed;
-  char RFWaitsPerSecondBuffer[50];
-  sprintf(RFWaitsPerSecondBuffer, "%-40s %.2f", "- RF waits/s: ", RFWaitsPerSecond);
-  Serial.print(RFWaitsPerSecondBuffer);
-  Serial.println("");
-  Serial.print(F("Errors: "));
-
-  Serial.println(state.errors);
-  state.errors = 0;
-  state.packets = 0;
-  state.TMPackets = 0;
-  state.RFWaits = 0;
-  state.waitingForRF = 0;
-  loops = 0;
-  #endif
-  return true;
-}
-
 typedef bool (*task)(unsigned long);
 
-task tasks[] = { receiveThrottlePacket, writePPMValue, checkBattery, printStats, doServerWork };
+task tasks[] = { receiveThrottlePacket, writePPMValue, checkBattery, doServerWork, printStats };
 
 void loop() {
-  for(int i = 0; i <= LAST_TASK; i++) {
+  for(int i = 0; i < N_TASKS; i++) {
     unsigned long start = micros();
     unsigned long startMillis = start/1000;
-    if((startMillis - lastRun[i]) >= periods[i]) {
-      bool success = tasks[i](startMillis);
-      if(success) {
-        successes[i]++;
+    if(state.activeTasks[i] && ((startMillis - state.lastRun[i]) >= periods[i])) {
+      if(tasks[i](startMillis)) {
+        stats.successes[i]++;
+        state.lastRun[i] = startMillis;
       } else {
-        failures[i]++;
+        stats.failures[i]++;
       }
       unsigned long end = micros();
       unsigned long ellapsed = end - start;
-      times[i]+=ellapsed;
-      if(maxTimes[i] < ellapsed) {
-        maxTimes[i] = ellapsed;
+      stats.times[i]+=ellapsed;
+      if(stats.maxTimes[i] < ellapsed) {
+        stats.maxTimes[i] = ellapsed;
       } 
-      if (minTimes[i] > ellapsed) {
-        minTimes[i] = ellapsed;
+      if (stats.minTimes[i] > ellapsed) {
+        stats.minTimes[i] = ellapsed;
       }
-      lastRun[i] = startMillis;
     }
   }
-  loops++;
+  stats.loops++;
 }
 
 void setup() {
@@ -153,7 +76,9 @@ void setup() {
 
   ONSequence();
 
-  LAST_TASK = state.setupMode ? 4 : 3;
+  if(state.setupMode) {
+    state.activeTasks[3] = true;
+  }
 
   #ifdef DEBUG
   Serial.begin(115200);
@@ -182,7 +107,7 @@ void setup() {
     #endif
   }
 
-  LT.setupLoRa(frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setupLoRa(config.frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
 
   #ifdef DEBUG
   Serial.println(F("Receiver ready"));

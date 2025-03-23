@@ -5,7 +5,7 @@ void clearError() {
 }
 
 void setError(char reason[]) {
-  state.errors++;
   state.error = true;
-  strcpy(state.errorReason, reason);
+  stats.errors++;
+  strcpy(stats.errorReason, reason);
 }

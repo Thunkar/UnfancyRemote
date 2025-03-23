@@ -2,13 +2,14 @@
 
 SX128XLT LT;
 
-unsigned long frequency = config.channel * CH_BANDWIDTH_HZ + BASE_FREQUENCY;
-
 unsigned int throttleMask = 0xFFF;
 unsigned int TMRequestMask = 0x1000;
 
-#define RX_IRQ_MASK 0x4022
-#define TX_IRQ_MASK 0x4001
+#define RX_WAIT 0
+#define TX_WAIT 1
+
+#define RX_IRQ_MASK IRQ_RX_DONE + IRQ_RX_TX_TIMEOUT
+#define TX_IRQ_MASK IRQ_TX_DONE + IRQ_RX_TX_TIMEOUT
 
 unsigned int resetCounter = 0;
 const unsigned int MAX_RESET_COUNTER = 200 / 20; // 200ms desired timeout / 20ms per expected packet period
@@ -33,61 +34,59 @@ bool checkRFDone(uint16_t IRQMask) {
   return IRQStatus & IRQMask;
 }
 
-bool waitForRFReady(long timeoutMs, uint16_t IRQMask) {
+bool waitForRFReady(long timeoutMs, int waitFor) {
   long timeout = timeoutMs*1000;
   long ellapsed = 0;
   bool RFAvailable = false;
   unsigned long start = micros();
+  uint16_t IRQMask = waitFor == RX_WAIT ? RX_IRQ_MASK : TX_IRQ_MASK;
   while (!RFAvailable && (timeout-ellapsed) > 0) {
     RFAvailable = checkRFBusy() && checkRFDone(IRQMask);
     ellapsed = micros() - start;
   }
   LT.setMode(MODE_STDBY_RC);
-  state.waitingForRF+=ellapsed;
-  state.RFWaits++;
+  if(waitFor == RX_WAIT) {
+    stats.timeWaitingForRX+=ellapsed;
+    stats.RXWaits++;
+  } else {
+    stats.timeWaitingForTX+=ellapsed;
+    stats.TXWaits++;
+  }
   return RFAvailable;
 }
 
 bool checkRXIRQError() {
   uint16_t IRQStatus = LT.readIrqStatus();
-  return !(IRQStatus & (IRQ_HEADER_ERROR + IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
+  return !(IRQStatus & (IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
 }
 
 bool processReceivedPacket() {
   if(!checkRXIRQError()) {
     setError("IRQ Error");
-    LT.clearIrqStatus(IRQ_RADIO_ALL);
     return false;
   }                                               
   unsigned int TXIdentity = -1;
   unsigned int receivedData = ENCODED_HALF;
-  unsigned int measuredRXPacketLength = LT.readRXPacketL();
   bool TMRequest = false;
   int measuredSNR = 0;
   long measuredRSSI = 0;
   
-  if(measuredRXPacketLength == throttlePacketLength){
-    LT.startReadSXBuffer(0);                
-    TXIdentity = LT.readUint8();         
-    receivedData = LT.readUint16();     
-    LT.endReadSXBuffer(); 
-    measuredRSSI = LT.readPacketRSSI();      
-    measuredSNR = LT.readPacketSNR(); 
-       
-    if(TXIdentity != config.identity) {
-      char reason[30];
-      sprintf(reason, "Incorrect identity %3d", TXIdentity);
-      setError(reason);
-    }
-  } else {
+  LT.startReadSXBuffer(0);                
+  TXIdentity = LT.readUint8();         
+  receivedData = LT.readUint16();     
+  LT.endReadSXBuffer(); 
+  measuredRSSI = LT.readPacketRSSI();      
+  measuredSNR = LT.readPacketSNR(); 
+      
+  if(TXIdentity != config.identity) {
     char reason[30];
-    sprintf(reason, "Incorrect packet length %3d", measuredRXPacketLength);
+    sprintf(reason, "Incorrect identity %3d", TXIdentity);
     setError(reason);
   }
   
   if(!state.error) {
     state.isConnected = true;
-    state.packets++;
+    stats.packets++;
     state.currentSNR = measuredSNR;
     state.currentRSSI = measuredRSSI;
     state.encodedThrottleValue = (receivedData & throttleMask);
@@ -103,18 +102,20 @@ void sendTMPacket() {
   unsigned int encodedBoardVoltage = map(boardVoltageAsInt, 0, 420 * config.cellN, 0, 255) << 8;        
   LT.writeUint16(encodedBoardVoltage+config.identity);                            
   LT.endWriteSXBuffer();   
-  LT.transmitSXBufferIRQ(0, TMPacketLength, 0, TXpower, NO_WAIT);  
-  if(!waitForRFReady(10, TX_IRQ_MASK)) {
+  LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
+  LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
+  if(!waitForRFReady(5, TX_WAIT)) {
     setError("TX timeout");
     return;
   }
-  state.TMPackets++;
+  stats.TMPackets++;
 }
 
 bool receiveThrottlePacket(unsigned long now) {
   clearError();
+  LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(10, RX_IRQ_MASK)) {
+  if(!waitForRFReady(10, RX_WAIT)) {
     connectionReset();
     return false;
   }

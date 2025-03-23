@@ -13,12 +13,10 @@ State state = {
     true,
     -100, 
     -100,
-    0,
-    0,
-    0,
-    0,
-    // Errors
-    false, 
-    0, 
-    ""
+    // Last time tasks were run in ms
+    { 0, 0, 0, 0, 0 },
+    // Active tasks (server disabled by default)
+    { 1, 1, 1, 0, 1 },
+    // Error
+    false
 };

@@ -6,11 +6,9 @@
 #include "utils.h"
 #include "state.h"
 #include "config.h"
-#include "error_handling.h"
+#include "error_handling.h"	
+#include "stats.h"
 
 extern SX128XLT LT;
 
-extern unsigned long frequency;
-
-void IRAM_ATTR processRFInterrupt();
 bool receiveThrottlePacket(unsigned long now);
