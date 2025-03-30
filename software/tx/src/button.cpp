@@ -1,22 +1,19 @@
 #include "button.h"
 
 unsigned long lastPressedTime = 0;
-const unsigned long debounceDelay = 100;
-const unsigned long offDelay = 1500;    
-const unsigned long changeModeDelay = 500;
 
-bool checkButton(unsigned long now) {
+TaskResult checkButton(unsigned long now) {
   int buttonState;
   int reading = digitalRead(BUTTON);
   if (reading != state.lastButtonState) {
     lastPressedTime = now;
   }
 
-  if(now - lastPressedTime > debounceDelay) {
+  if(now - lastPressedTime > DEBOUNCE_DELAY_US) {
       buttonState = reading;
   }
 
-  if (now - lastPressedTime > offDelay) {
+  if (now - lastPressedTime > OFF_DELAY_US) {
     if (buttonState) {
       digitalWrite(MOTOR, HIGH);
       digitalWrite(ON, LOW);
@@ -26,7 +23,7 @@ bool checkButton(unsigned long now) {
     }
   }
 
-  if(now - lastPressedTime > changeModeDelay) {
+  if(now - lastPressedTime > CHANGE_MODE_DELAY_US) {
     if(buttonState && state.currentDisplayMode != -1 && state.canChangeMode) {
       state.lastModeTransition = now;
       state.canChangeMode = false;
@@ -38,5 +35,5 @@ bool checkButton(unsigned long now) {
     state.canChangeMode = true;
   }
   state.lastButtonState = reading;
-  return true;
+  return { true, 0 };
 }

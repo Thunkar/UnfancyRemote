@@ -32,13 +32,17 @@ const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
-// Time in ms to hold the button to enter setup mode
+// Time in us to hold the button to enter setup mode
 
-const int SETUP_MODE_DELAY = 5000; 
+const int SETUP_MODE_DELAY = 5000 * 1e3; 
 
 // Scheduler
 
 const int N_TASKS = 9;
+struct TaskResult {
+    bool success;
+    long offset;
+};
 
 // Battery thresholds: Define what each LED of the remote means in terms of cell voltage, both for the remote and the board. First level is 4 LEDs ON, second one 3, etc. The last level will make the remote rumble and the last LED blink. WARNING: a maximum board voltage of 12S (50.4V) is measurable.
 const int BATTERY_THRESHOLDS_LENGTH = 5;
@@ -52,8 +56,8 @@ const float BOARD_BATTERY_CELL_V_THR[] = { 4.0, 3.8, 3.7, 3.5, 3.3 };
 #define LORA_DEVICE DEVICE_SX1280    
 #define Offset 0                                 
 #define Bandwidth LORA_BW_1600                  
-#define SpreadingFactor LORA_SF7                 
-#define CodeRate LORA_CR_4_8  
+#define SpreadingFactor LORA_SF8                 
+#define CodeRate LORA_CR_LI_4_8  
 #define PREAMBLE_LENGTH 8
 #define TX_POWER 12                      
 #define THROTTLE_PACKET_LENGTH 3                 

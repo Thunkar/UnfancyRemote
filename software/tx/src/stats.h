@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "board.h"
+#include "scheduler.h"
 #include "config.h"
 #include "state.h"
 
@@ -25,4 +26,4 @@ struct Stats {
 
 extern Stats stats;
 
-bool printStats(unsigned long now);
+TaskResult printStats(unsigned long now);

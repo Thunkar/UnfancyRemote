@@ -79,7 +79,7 @@ void setupServer(){
   server.begin();
 }
 
-bool doServerWork(unsigned long now) {
+TaskResult doServerWork(unsigned long now) {
   dnsServer.processNextRequest();
   ws.textAll(
     state.boardVoltage + String(",") + 
@@ -87,5 +87,5 @@ bool doServerWork(unsigned long now) {
     state.currentRSSI + String(",") +
     state.currentSNR
   );
-  return true;
+  return { true, 0 };
 }

@@ -2,6 +2,8 @@
 
 char *TASK_NAMES[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "printStats", "doServerWork" };
 
+unsigned long lastRun = 0;
+
 Stats stats = {
     // Successes
     { 0, 0, 0, 0, 0 },
@@ -23,6 +25,8 @@ Stats stats = {
     0,
     0,
     0,
+    0,
+    // RxOffsets
     0,
     // Errors
     0,
@@ -47,11 +51,12 @@ void resetStats() {
     stats.timeWaitingForTX = 0;
     stats.TXWaits = 0;
     stats.RXWaits = 0;
+    stats.rxOffsets = 0;
     stats.errors = 0;
     strcpy(stats.errorReason, "");
 }
 
-bool printStats(unsigned long now) {
+TaskResult printStats(unsigned long now) {
   #ifdef DEBUG
   if(stats.errors > 0) {
     Serial.println(F("////////ERROR//////////"));
@@ -60,7 +65,7 @@ bool printStats(unsigned long now) {
   }
   Serial.print("Connected: ");
   Serial.println(state.isConnected);
-  float ellapsed = (now - state.lastRun[4])/1000;
+  float ellapsed = (now - lastRun)/1e6;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
   Serial.print(F("s | VBat: "));
@@ -105,6 +110,10 @@ bool printStats(unsigned long now) {
   int TMPacketsPerSecond = round(stats.TMPackets / ellapsed);
   Serial.print(F("TM packets/s: "));
   Serial.println(TMPacketsPerSecond);
+  Serial.println(F("Sync: "));
+  char rxOffsetsBuffer[50];
+  sprintf(rxOffsetsBuffer, "- Rx offsets: %6.2fus", stats.rxOffsets / (float)stats.successes[0]);
+  Serial.println(rxOffsetsBuffer);
   Serial.println(F("RF waits: "));
   float RXWaitMeanUs = stats.timeWaitingForRX / stats.RXWaits;
   char meanTimeWaitingRXBuffer[50];
@@ -131,5 +140,6 @@ bool printStats(unsigned long now) {
   Serial.println("");
   #endif
   resetStats();
-  return true;
+  lastRun = now;
+  return { true, 0 };
 }

@@ -1,8 +1,9 @@
 #pragma once
 
 #include <Arduino.h>
+#include "board.h"
 #include "settings.h"
 #include "state.h"
 #include "utils.h"
 
-bool checkBattery(unsigned long now);
+TaskResult checkBattery(unsigned long now);

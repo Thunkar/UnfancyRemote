@@ -2,9 +2,12 @@
 
 #include <Arduino.h>
 #include "board.h"
+#include "scheduler.h"
 #include "state.h"
 #include "config.h"
 #include "button.h"
 #include "utils.h"
 
-bool readThrottle(unsigned long now);
+#define BRAKE_SENSITIVITY 10
+
+TaskResult readThrottle(unsigned long now);

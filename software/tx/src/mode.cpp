@@ -1,7 +1,7 @@
 #include "mode.h"
 
+
 int nextDisplayMode = 0;
-unsigned long transitionDelay = 250;
 
 void changeMode(int mode) {
   state.currentDisplayMode = -1;
@@ -9,12 +9,12 @@ void changeMode(int mode) {
   for(int i = 0; i < LEDS_LENGTH; i++) {
     setLEDOff(i);
   }
-  pulseMotor(nextDisplayMode+1, 100);
+  pulseMotor(nextDisplayMode+1, 100 * 1e3);
 }
 
-bool displayMode(unsigned long now) {
+TaskResult displayMode(unsigned long now) {
   if(nextDisplayMode != state.lastDisplayMode) {
-    if(now - state.lastModeTransition > transitionDelay) {
+    if(now - state.lastModeTransition > TRANSITION_DELAY_US) {
       state.currentDisplayMode = nextDisplayMode;
       state.lastDisplayMode = nextDisplayMode;
     }
@@ -31,7 +31,7 @@ bool displayMode(unsigned long now) {
           }
         }
         if(state.boardCellVoltage <= BOARD_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1] && state.boardCellVoltage > 0) {
-          pulseMotor(-1, 500);
+          pulseMotor(-1, 500 * 1e3);
           flashLED(3, -1, 200, CRGB::Black);
         } else {
           pulseMotor(-1, -1);
@@ -55,13 +55,13 @@ bool displayMode(unsigned long now) {
         }
       }
       if(state.batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1] && state.batteryVoltage > 0) {
-          pulseMotor(-1, 100);
+          pulseMotor(-1, 100 * 1e3);
       } else {
           pulseMotor(-1, -1);
       }
       break;
     }
   }
-  return true;
+  return { true, 0 };
 }
 

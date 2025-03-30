@@ -2,22 +2,16 @@
 
 SX128XLT LT;
 
-unsigned int throttleMask = 0xFFF;
-unsigned int TMRequestMask = 0x1000;
-
-#define RX_WAIT 0
-#define TX_WAIT 1
-
-#define RX_IRQ_MASK IRQ_RX_DONE + IRQ_RX_TX_TIMEOUT
-#define TX_IRQ_MASK IRQ_TX_DONE + IRQ_RX_TX_TIMEOUT
-
 unsigned int resetCounter = 0;
-const unsigned int RX_TIMEOUT = 200; // 200ms timeout
-
 unsigned long lastPacketTime = 0;
 
+struct ReceptionResult { 
+  bool success;
+  bool TMRequest; 
+};
+
 void checkRXTimeout() {
-  if((micros() - lastPacketTime) > RX_TIMEOUT*1000) {
+  if((micros() - lastPacketTime) > DISCONNECT_TIMEOUT_US) {
     state.currentSNR = -100;
     state.currentRSSI = -100;
     state.isConnected = false;
@@ -34,8 +28,7 @@ bool checkRFDone(uint16_t IRQMask) {
   return IRQStatus & IRQMask;
 }
 
-bool waitForRFReady(long timeoutMs, int waitFor) {
-  long timeout = timeoutMs*1000;
+bool waitForRFReady(long timeout, int waitFor) {
   long ellapsed = 0;
   bool RFAvailable = false;
   unsigned long start = micros();
@@ -62,7 +55,7 @@ bool checkRXIRQError() {
   return !(IRQStatus & (IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
 }
 
-bool processReceivedPacket() {
+ReceptionResult processReceivedPacket() {
   unsigned int TXIdentity = -1;
   unsigned int receivedData = ENCODED_HALF;
   bool TMRequest = false;
@@ -71,42 +64,42 @@ bool processReceivedPacket() {
 
   if(!checkRXIRQError()) {
     setError("IRQ Error");
-  } else {
-    LT.startReadSXBuffer(0);                
-    TXIdentity = LT.readUint8();         
-    receivedData = LT.readUint16();     
-    LT.endReadSXBuffer(); 
-    measuredRSSI = LT.readPacketRSSI();      
-    measuredSNR = LT.readPacketSNR(); 
-        
-    if(TXIdentity != config.identity) {
-      char reason[30];
-      sprintf(reason, "Incorrect identity %3d", TXIdentity);
-      setError(reason);
-    }
+    return { false, false };
   } 
-  
-  if(!state.error) {
-    unsigned long now = micros();
-    unsigned long ellapsed = now - lastPacketTime;
-    stats.packets++;
-    stats.packetTimes+=ellapsed;
-    if(stats.maxPacketTime < ellapsed) {
-      stats.maxPacketTime = ellapsed;
-    }
-    if(stats.minPacketTime > ellapsed) {
-      stats.minPacketTime = ellapsed;
-    }
-    lastPacketTime = now;
-    state.isConnected = true;
-    state.currentSNR = measuredSNR;
-    state.currentRSSI = measuredRSSI;
-    state.encodedThrottleValue = (receivedData & throttleMask);
-    resetCounter = 0;
-    TMRequest = (receivedData & TMRequestMask) >> 12;
+
+  LT.startReadSXBuffer(0);                
+  TXIdentity = LT.readUint8();         
+  receivedData = LT.readUint16();     
+  LT.endReadSXBuffer(); 
+  measuredRSSI = LT.readPacketRSSI();      
+  measuredSNR = LT.readPacketSNR(); 
+      
+  if(TXIdentity != config.identity) {
+    char reason[30];
+    sprintf(reason, "Incorrect identity %3d", TXIdentity);
+    setError(reason);
+    return { false, false };
   }
 
-  return TMRequest;
+  unsigned long now = micros();
+  unsigned long ellapsed = now - lastPacketTime;
+  stats.packets++;
+  stats.packetTimes+=ellapsed;
+  if(stats.maxPacketTime < ellapsed) {
+    stats.maxPacketTime = ellapsed;
+  }
+  if(stats.minPacketTime > ellapsed) {
+    stats.minPacketTime = ellapsed;
+  }
+  lastPacketTime = now;
+  state.isConnected = true;
+  state.currentSNR = measuredSNR;
+  state.currentRSSI = measuredRSSI;
+  state.encodedThrottleValue = (receivedData & THROTTLE_MASK);
+  resetCounter = 0;
+  TMRequest = (receivedData & TM_REQUEST_MASK) >> 12;
+
+  return { true, TMRequest };
 }
 
 void sendTMPacket() {
@@ -117,24 +110,30 @@ void sendTMPacket() {
   LT.endWriteSXBuffer();   
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
-  if(!waitForRFReady(3, TX_WAIT)) {
+  if(!waitForRFReady(TX_TIMEOUT_US, TX_WAIT)) {
     setError("TX timeout");
     return;
   }
   stats.TMPackets++;
 }
 
-bool receiveThrottlePacket(unsigned long now) {
+TaskResult receiveThrottlePacket(unsigned long now) {
   checkRXTimeout();
   clearError();
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(7, RX_WAIT)) {
-    return false;
+  if(!waitForRFReady(RX_TIMEOUT_US, RX_WAIT)) {
+    return { false, !state.isConnected ? -1e3 : 0 }; // Slide the reception window if disconnected
   }
-  bool TMRequest = processReceivedPacket();
-  if(TMRequest) {
+  long rxWait = micros() - now;
+
+  ReceptionResult result = processReceivedPacket();
+  if(result.success && result.TMRequest) {
     sendTMPacket();
   }
-  return true;
+
+  // Try to schedule next task so the packet lands in the middle of the reception window
+  double offset = result.success && (rxWait != RECEPTION_TIME_TARGET_US) ? (rxWait - RECEPTION_TIME_TARGET_US) : 0;
+  stats.rxOffsets+=offset;
+  return { true, offset };
 }

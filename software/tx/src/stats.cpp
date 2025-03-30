@@ -2,6 +2,8 @@
 
 const char *TASK_NAMES[] = { "sendThrottlePacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "doServerWork", "printStats" };
 
+unsigned long lastRun = 0;
+
 Stats stats = {
     // Successes
     { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -45,7 +47,7 @@ void resetStats() {
     strcpy(stats.errorReason, "");
 }
 
-bool printStats(unsigned long now) {
+TaskResult printStats(unsigned long now) {
   #ifdef DEBUG
   if(stats.errors > 0) {
     Serial.println(F("////////ERROR//////////"));
@@ -54,7 +56,7 @@ bool printStats(unsigned long now) {
   }
   Serial.print("Connected: ");
   Serial.println(state.isConnected);
-  float ellapsed = (now - state.lastRun[8])/1000;
+  float ellapsed = (now - lastRun)/1e6;
   Serial.print(F("Ellapsed: "));
   Serial.print(ellapsed);
   Serial.print(F("s | VBat: "));
@@ -131,5 +133,6 @@ bool printStats(unsigned long now) {
   Serial.println("");
   #endif
   resetStats();
-  return true;
+  lastRun = now;
+  return { true, 0 };
 }

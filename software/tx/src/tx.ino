@@ -3,6 +3,7 @@
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "board.h"
+#include "scheduler.h"
 #include "utils.h"
 #include "config.h"
 #include "state.h"
@@ -45,36 +46,11 @@ void ONSequence() {
     }
 }
 
-const unsigned long periods[N_TASKS] = { 10, 10, 200, 1000, 100, 50, 20, 50, 2000 };
 
-typedef bool (*task)(unsigned long);
-
-task tasks[] = { sendThrottlePacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, doServerWork, printStats };
+task tasks[N_TASKS] = { sendThrottlePacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, doServerWork, printStats };
 
 void loop() {
-  for(int i = 0; i < N_TASKS; i++) {
-    unsigned long start = micros();
-    unsigned long startMillis = start/1000;
-    if(state.activeTasks[i] && ((startMillis - state.lastRun[i]) >= periods[i])) {
-      if(tasks[i](startMillis)) {
-        stats.successes[i]++;
-        state.lastRun[i] = startMillis;
-      } else {
-        stats.failures[i]++;
-        state.lastRun[i] = startMillis + (periods[i]/2);
-      }
-      unsigned long end = micros();
-      unsigned long ellapsed = end - start;
-      stats.times[i]+=ellapsed;
-      if(stats.maxTimes[i] < ellapsed) {
-        stats.maxTimes[i] = ellapsed;
-      } 
-      if (stats.minTimes[i] > ellapsed) {
-        stats.minTimes[i] = ellapsed;
-      }
-    }
-  }
-  stats.loops++;
+  schedule(tasks);
 }
 
 

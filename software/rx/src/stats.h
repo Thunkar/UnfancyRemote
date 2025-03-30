@@ -5,7 +5,6 @@
 #include "config.h"
 #include "state.h"
 
-
 struct Stats {
     unsigned long successes[N_TASKS];
     unsigned long failures[N_TASKS];
@@ -22,10 +21,11 @@ struct Stats {
     unsigned long timeWaitingForRX;
     unsigned long TXWaits;
     unsigned long RXWaits;
+    long rxOffsets; 
     int errors;
     char errorReason[30];
 };
 
 extern Stats stats;
 
-bool printStats(unsigned long now);
+TaskResult printStats(unsigned long now);

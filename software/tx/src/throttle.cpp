@@ -1,12 +1,6 @@
 #include "throttle.h"
 
-const unsigned int BRAKE_SENSITIVITY = 10;
-
-bool readThrottle(unsigned long now) {
-  if(state.lastButtonState) {
-    state.encodedThrottleValue = ENCODED_HALF;
-    return true;
-  }
+TaskResult readThrottle(unsigned long now) {
   if(config.isDual) {
     state.rawThrottle1Value = sampleAdc(THR1);
     state.rawThrottle2Value = sampleAdc(THR2);
@@ -32,5 +26,5 @@ bool readThrottle(unsigned long now) {
                                   map(throttle1Value, min(config.calBrake, config.calAcc), config.centerAcc, 0, ENCODED_HALF); 
     state.encodedThrottleValue = config.inverted ? ENCODED_MAX - scaledValue : scaledValue;
   }
-  return true;
+  return { true, 0 };
 }

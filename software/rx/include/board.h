@@ -29,13 +29,17 @@ const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
-// Time in ms to hold the button to enter setup mode
-
-const int SETUP_MODE_DELAY = 5000; 
-
 // Scheduler
 
 const int N_TASKS = 5;
+struct TaskResult {
+    bool success;
+    double offset;
+};
+
+// Time in us to hold the button to enter setup mode
+
+const int SETUP_MODE_DELAY = 5000 * 1e3; 
 
 // Lora params
 
@@ -44,8 +48,8 @@ const int N_TASKS = 5;
 #define LORA_DEVICE DEVICE_SX1280    
 #define Offset 0                               
 #define Bandwidth LORA_BW_1600                  
-#define SpreadingFactor LORA_SF7                 
-#define CodeRate LORA_CR_4_8   
+#define SpreadingFactor LORA_SF8                 
+#define CodeRate LORA_CR_LI_4_8   
 #define PREAMBLE_LENGTH 8
 #define TX_POWER 12                      
 #define THROTTLE_PACKET_LENGTH 3                 

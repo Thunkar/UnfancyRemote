@@ -16,8 +16,8 @@ struct State {
     bool isConnected;
     long currentRSSI;
     int currentSNR;
-    // Last time tasks were run in ms
-    unsigned long lastRun[N_TASKS];
+    // Next time tasks should be run in ns
+    unsigned long nextRun[N_TASKS];
     // Active tasks
     bool activeTasks[N_TASKS];
     // Error

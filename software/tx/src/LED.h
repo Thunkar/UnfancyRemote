@@ -1,6 +1,10 @@
 #pragma once
 
 #include "FastLED.h"
+#include "scheduler.h"
+
+#define LEDS_LENGTH 4
+#define SEQUENCE_SPEED 3
 
 void changeLEDColor(int LEDn, CRGB color);
 
@@ -10,11 +14,9 @@ void setLEDOff(int LEDn);
 
 void flashLED(int LEDn, int times, unsigned long period, CRGB resetStatus);
 
-bool setLEDs(unsigned long now);
+TaskResult setLEDs(unsigned long now);
 
 void sequence();
 
-
 extern CRGB LEDColor[];
-extern const int LEDS_LENGTH;
 extern CRGB rainbow[];

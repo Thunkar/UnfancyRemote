@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 #include "board.h"
+#include "scheduler.h"
 
 void pulseMotor(int times, unsigned long period);
-bool setMotor(unsigned long now);
+
+TaskResult setMotor(unsigned long now);

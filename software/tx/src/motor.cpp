@@ -10,7 +10,7 @@ void pulseMotor(int times, unsigned long period) {
   motorResetCounter = times;
 }
 
-bool setMotor(unsigned long now) {
+TaskResult setMotor(unsigned long now) {
   int currentStatus = motorStatus;
   if(motorPeriod == -1) {
     motorStatus = LOW;  
@@ -32,5 +32,5 @@ bool setMotor(unsigned long now) {
   if(currentStatus != motorStatus) {
     digitalWrite(MOTOR, motorStatus);
   }
-  return true;
+  return { true, 0 };
 }

@@ -1,6 +1,5 @@
 #include "LED.h"
 
-const int LEDS_LENGTH = 4;
 CRGB rainbow[] = { CRGB::Red, CRGB::Orange, CRGB::Yellow, CRGB::Green };
 
 CRGB LEDColor[] = { CRGB::Black, CRGB::Black, CRGB::Black, CRGB::Black };
@@ -8,7 +7,6 @@ CRGB storedLEDColor[] = { CRGB::White, CRGB::White, CRGB::White, CRGB::White };
 long LEDPeriods[] = { -1, -1, -1, -1 };
 int LEDResetCounters[] = { -1, -1, -1, -1 };
 unsigned long lastLEDToggled[] = { 0, 0, 0, 0 };
-int sequenceSpeed = 3;
 bool inSequence = false;
 
 void changeLEDColor(int LEDn, CRGB color) {
@@ -39,10 +37,10 @@ void sequence() {
     LEDPeriods[i] = -2;
     LEDResetCounters[i] = 0;
   }
-  LEDResetCounters[0] = sequenceSpeed;
+  LEDResetCounters[0] = SEQUENCE_SPEED;
 }
 
-bool setLEDs(unsigned long now) {
+TaskResult setLEDs(unsigned long now) {
   for(int i = 0; i < LEDS_LENGTH; i++) {
     if (LEDPeriods[i] == -1) {
       LEDColor[i] = CRGB::Black;
@@ -54,7 +52,7 @@ bool setLEDs(unsigned long now) {
         LEDColor[i] = storedLEDColor[i];
       } else if (LEDColor[i] != CRGB::Black) {
         int nextIndex = i+1 >= LEDS_LENGTH ? 0 : i+1;
-        LEDResetCounters[nextIndex] = sequenceSpeed;
+        LEDResetCounters[nextIndex] = SEQUENCE_SPEED;
         LEDColor[i] = CRGB::Black;
       }
     } else if(now - lastLEDToggled[i] >= LEDPeriods[i]) {
@@ -73,5 +71,5 @@ bool setLEDs(unsigned long now) {
     }
   }
   FastLED.show();
-  return true;
+  return { true, 0 };
 }
