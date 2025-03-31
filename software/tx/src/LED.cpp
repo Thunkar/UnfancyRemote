@@ -73,3 +73,9 @@ TaskResult setLEDs(unsigned long now) {
   FastLED.show();
   return { true, 0 };
 }
+
+void setupLEDs() {
+  FastLED.addLeds<WS2812B, LED, GRB>(LEDColor, LEDS_LENGTH);
+  FastLED.setBrightness(128);
+  FastLED.show();
+}

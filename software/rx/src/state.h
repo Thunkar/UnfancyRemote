@@ -20,8 +20,6 @@ struct State {
     unsigned long nextRun[N_TASKS];
     // Active tasks
     bool activeTasks[N_TASKS];
-    // Error
-    bool error;
 };
 
 extern State state;

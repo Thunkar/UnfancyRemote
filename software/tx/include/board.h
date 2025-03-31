@@ -3,6 +3,11 @@
 // Log to serial
 #define DEBUG
 
+// RF params
+
+#define CH_BANDWIDTH_HZ 2500000
+#define BASE_FREQUENCY 2400000000
+
 // HW Pins
 
 const int NSS = 7;                           //select on LoRa device
@@ -48,17 +53,3 @@ struct TaskResult {
 const int BATTERY_THRESHOLDS_LENGTH = 5;
 const float REMOTE_BATTERY_CELL_V_THR[] = { 4.0, 3.9, 3.8, 3.7, 3.6 };
 const float BOARD_BATTERY_CELL_V_THR[] = { 4.0, 3.8, 3.7, 3.5, 3.3 };
-
-// Lora params
-
-#define CH_BANDWIDTH_HZ 2500000
-#define BASE_FREQUENCY 2400000000
-#define LORA_DEVICE DEVICE_SX1280    
-#define Offset 0                                 
-#define Bandwidth LORA_BW_1600                  
-#define SpreadingFactor LORA_SF8                 
-#define CodeRate LORA_CR_LI_4_8  
-#define PREAMBLE_LENGTH 8
-#define TX_POWER 12                      
-#define THROTTLE_PACKET_LENGTH 3                 
-#define TM_PACKET_LENGTH 2

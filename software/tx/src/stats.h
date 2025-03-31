@@ -6,6 +6,15 @@
 #include "config.h"
 #include "state.h"
 
+const int ERROR_TYPES = 5;
+
+enum ERROR_CODE {
+    IRQ_ERROR,
+    INCORRECT_IDENTITY,
+    TX_TIMEOUT,
+    RX_TIMEOUT,
+    DISCONNECTED
+};
 
 struct Stats {
     unsigned long successes[N_TASKS];
@@ -20,10 +29,12 @@ struct Stats {
     unsigned long timeWaitingForRX;
     unsigned long TXWaits;
     unsigned long RXWaits;
-    int errors;
-    char errorReason[30];
+    unsigned long errors[ERROR_TYPES];
 };
 
 extern Stats stats;
 
 TaskResult printStats(unsigned long now);
+
+void setError(ERROR_CODE code);
+char* getReason(ERROR_CODE code);

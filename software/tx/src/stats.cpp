@@ -24,8 +24,7 @@ Stats stats = {
     0,
     0,
     // Errors
-    0,
-    ""
+    { 0, 0, 0, 0, 0 }
 };
 
 void resetStats() {
@@ -43,17 +42,34 @@ void resetStats() {
     stats.timeWaitingForTX = 0;
     stats.TXWaits = 0;
     stats.RXWaits = 0;
-    stats.errors = 0;
-    strcpy(stats.errorReason, "");
+    for(int i = 0; i < ERROR_TYPES; i++) {
+        stats.errors[i] = 0;
+    }
+}
+
+void setError(ERROR_CODE code) {
+  stats.errors[code]++;
+}
+
+char* getReason(ERROR_CODE code) {
+  switch(code) {
+    case IRQ_ERROR:
+      return "IRQ Error";
+    case INCORRECT_IDENTITY:
+      return "Incorrect identity";
+    case TX_TIMEOUT:
+      return "TX timeout";
+    case RX_TIMEOUT:
+      return "RX timeout";
+    case DISCONNECTED:
+      return "Disconnected";
+    default:
+      return "Unknown error";
+  }
 }
 
 TaskResult printStats(unsigned long now) {
   #ifdef DEBUG
-  if(stats.errors > 0) {
-    Serial.println(F("////////ERROR//////////"));
-    Serial.println(stats.errorReason);
-    Serial.println(F("//////////////////////"));
-  }
   Serial.print("Connected: ");
   Serial.println(state.isConnected);
   float ellapsed = (now - lastRun)/1e6;
@@ -126,11 +142,17 @@ TaskResult printStats(unsigned long now) {
   float TXWaitsPerSecond = stats.TXWaits / ellapsed;
   char TXWaitsPerSecondBuffer[50];
   sprintf(TXWaitsPerSecondBuffer, "%-40s %.2f", "- TX waits/s: ", TXWaitsPerSecond);
-  Serial.print(TXWaitsPerSecondBuffer);
+  Serial.println(TXWaitsPerSecondBuffer);
   Serial.println("");
-  Serial.print(F("Errors: "));
-  Serial.println(stats.errors);
-  Serial.println("");
+  sprintf(titleBuffer, "%-23s | %8s", "Error code", "Count/s");
+  Serial.println(titleBuffer);
+  Serial.println(F("-------------------------------------"));
+  for(int i = 0; i < ERROR_TYPES; i++) {
+    char prBuffer[150];
+    sprintf(prBuffer, "%-23s | %5.2f", getReason((ERROR_CODE)i), stats.errors[i] / ellapsed);
+    Serial.println(prBuffer);
+  }
+  Serial.println(F("-------------------------------------"));
   #endif
   resetStats();
   lastRun = now;

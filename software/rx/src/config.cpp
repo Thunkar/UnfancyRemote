@@ -24,3 +24,7 @@ void writeConfig() {
   writeUInt(4, config.cellN);
   EEPROM.commit();
 }
+
+void setupEEPROM() {
+  EEPROM.begin(6);
+}

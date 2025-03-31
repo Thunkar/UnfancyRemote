@@ -15,6 +15,7 @@ void setLEDOff(int LEDn);
 void flashLED(int LEDn, int times, unsigned long period, CRGB resetStatus);
 
 TaskResult setLEDs(unsigned long now);
+void setupLEDs();
 
 void sequence();
 

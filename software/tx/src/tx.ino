@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <SPI.h>
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "board.h"
@@ -16,7 +15,6 @@
 #include "battery.h"
 #include "wifi_setup.h"
 #include "stats.h"
-#include "error_handling.h"	
 
 
 void ONSequence() {
@@ -53,16 +51,12 @@ void loop() {
   schedule(tasks);
 }
 
-
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
-
-  EEPROM.begin(18);
+  setupEEPROM();
   readConfig();
   readCalibration();
-  FastLED.addLeds<WS2812B, LED, GRB>(LEDColor, LEDS_LENGTH);
-  FastLED.setBrightness(128);
-  FastLED.show();
+  setupLEDs();
   pinMode(THR1, INPUT);
   pinMode(ON, OUTPUT);
   pinMode(MOTOR, OUTPUT);
@@ -93,17 +87,7 @@ void setup() {
     #endif
   } 
 
-  SPI.begin();
-
-  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
-  {
-    #ifdef DEBUG
-    Serial.println(F("Device error"));
-    #endif
-  }
-
-  LT.setupLoRa(config.frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-  LT.setPeriodBase(PERIODBASE_15_US);
+  setupLoRa();
 
   #ifdef DEBUG
   Serial.println(F("Remote ready"));

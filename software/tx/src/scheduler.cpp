@@ -2,7 +2,7 @@
 
 // Scheduler
 
-const unsigned long periods[N_TASKS] = { 20, 10, 200, 1000, 100, 50, 20, 50, 2000 };
+const unsigned long periods[N_TASKS] = { 10, 10, 200, 1000, 100, 50, 20, 50, 2000 };
 
 void schedule(task tasks[N_TASKS]) {
   for(int i = 0; i < N_TASKS; i++) {

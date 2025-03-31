@@ -23,3 +23,4 @@ void readConfig();
 void readCalibration();
 void writeConfig();
 void writeCalibration();
+void setupEEPROM();

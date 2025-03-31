@@ -11,11 +11,12 @@ struct ReceptionResult {
 };
 
 void checkRXTimeout() {
-  if((micros() - lastPacketTime) > DISCONNECT_TIMEOUT_US) {
+  if(state.isConnected && (micros() - lastPacketTime) > DISCONNECT_TIMEOUT_US) {
     state.currentSNR = -100;
     state.currentRSSI = -100;
     state.isConnected = false;
     state.encodedThrottleValue = ENCODED_HALF;
+    setError(ERROR_CODE::DISCONNECTED);
   }
 }
 
@@ -63,7 +64,7 @@ ReceptionResult processReceivedPacket() {
   long measuredRSSI = 0;
 
   if(!checkRXIRQError()) {
-    setError("IRQ Error");
+    setError(ERROR_CODE::IRQ_ERROR);
     return { false, false };
   } 
 
@@ -75,9 +76,7 @@ ReceptionResult processReceivedPacket() {
   measuredSNR = LT.readPacketSNR(); 
       
   if(TXIdentity != config.identity) {
-    char reason[30];
-    sprintf(reason, "Incorrect identity %3d", TXIdentity);
-    setError(reason);
+    setError(ERROR_CODE::INCORRECT_IDENTITY);
     return { false, false };
   }
 
@@ -111,7 +110,7 @@ void sendTMPacket() {
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
   if(!waitForRFReady(TX_TIMEOUT_US, TX_WAIT)) {
-    setError("TX timeout");
+    setError(ERROR_CODE::TX_TIMEOUT);
     return;
   }
   stats.TMPackets++;
@@ -119,11 +118,11 @@ void sendTMPacket() {
 
 TaskResult receiveThrottlePacket(unsigned long now) {
   checkRXTimeout();
-  clearError();
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
   if(!waitForRFReady(RX_TIMEOUT_US, RX_WAIT)) {
-    return { false, !state.isConnected ? -1e3 : 0 }; // Slide the reception window if disconnected
+    setError(ERROR_CODE::RX_TIMEOUT);
+    return { false, !state.isConnected ? 5e3 : 0 }; // Slide the reception window if disconnected
   }
   long rxWait = micros() - now;
 
@@ -132,8 +131,9 @@ TaskResult receiveThrottlePacket(unsigned long now) {
     sendTMPacket();
   }
 
-  // Try to schedule next task so the packet lands in the middle of the reception window
-  double offset = result.success && (rxWait != RECEPTION_TIME_TARGET_US) ? (rxWait - RECEPTION_TIME_TARGET_US) : 0;
+  // Try to schedule next task so the packet lands right after the last airtime, 
+  // with a minimum of MIN_RECEPTION_TIME_US
+  double offset = result.success && (rxWait > MIN_RECEPTION_TIME_US) ? (rxWait - MIN_RECEPTION_TIME_US) : 0;
   stats.rxOffsets+=offset;
   return { true, offset };
 }

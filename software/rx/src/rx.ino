@@ -8,7 +8,6 @@
 #include "PPM.h"
 #include "battery.h"
 #include "wifi_setup.h"
-#include "error_handling.h"	
 #include "stats.h"
 
 #define DEBUG
@@ -34,7 +33,7 @@ void loop() {
 }
 
 void setup() {
-  EEPROM.begin(6);
+  setupEEPROM();
   readConfig();
   pinMode(PPM, OUTPUT);
   pinMode(BUTTON, INPUT_PULLDOWN);

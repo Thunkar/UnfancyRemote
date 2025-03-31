@@ -43,3 +43,7 @@ void writeConfig() {
   writeUInt(16, config.isDual);
   EEPROM.commit();
 }
+
+void setupEEPROM() {
+  EEPROM.begin(18);
+}

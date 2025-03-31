@@ -15,3 +15,4 @@ extern Config config;
 
 void readConfig();
 void writeConfig();
+void setupEEPROM();
