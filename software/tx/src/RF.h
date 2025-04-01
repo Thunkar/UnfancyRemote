@@ -23,11 +23,11 @@
 #define THROTTLE_PACKET_LENGTH 3                 
 #define TM_PACKET_LENGTH 2
 
-#define RX_TIMEOUT_US 7 * 1e3
-#define TX_TIMEOUT_US 3 * 1e3
+#define RX_TIMEOUT_US 5000
+#define TX_TIMEOUT_US 2200
 
-#define TM_PERIOD_US 500 * 1e3
-#define TM_TIMEOUT_US 5000 * 1e3
+#define TM_PERIOD_US 250 * 1e3
+#define TM_TIMEOUT_US 1000 * 1e3
 
 #define RX_WAIT 0
 #define TX_WAIT 1

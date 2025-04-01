@@ -21,11 +21,19 @@
 #define THROTTLE_PACKET_LENGTH 3                 
 #define TM_PACKET_LENGTH 2
 
-#define RX_TIMEOUT_US 7 * 1e3
-#define TX_TIMEOUT_US 3 * 1e3
-#define MIN_RECEPTION_TIME_US 2700
+#define RX_TIMEOUT_US 5000
+#define TX_TIMEOUT_US 2200
 
-#define DISCONNECT_TIMEOUT_US 200 * 1e3
+// Adjusted based on the configured LoRa parameters (airtime) and
+// the processing time measured on the device
+#define APPROX_PROCESSING_TIME_US 250
+#define APPROX_RX_TIME_US 2000
+#define TARGET_RX_WAIT (APPROX_PROCESSING_TIME_US+APPROX_RX_TIME_US)
+
+#define MAX_WINDOW_SLIDE_US 1e3
+#define WINDOW_SLIDE_STEP_US 10
+
+#define DISCONNECT_TIMEOUT_US 250 * 1e3
 
 #define RX_WAIT 0
 #define TX_WAIT 1

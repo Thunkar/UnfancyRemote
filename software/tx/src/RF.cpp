@@ -37,12 +37,14 @@ bool waitForRFReady(long timeout, int waitFor) {
     ellapsed = micros() - start;
   }
   LT.setMode(MODE_STDBY_RC);
-  if(waitFor == RX_WAIT) {
-    stats.timeWaitingForRX+=ellapsed;
-    stats.RXWaits++;
-  } else {
-    stats.timeWaitingForTX+=ellapsed;
-    stats.TXWaits++;
+  if(RFAvailable) {
+    if(waitFor == RX_WAIT) {
+      stats.timeWaitingForRX+=ellapsed;
+      stats.RXWaits++;
+    } else {
+      stats.timeWaitingForTX+=ellapsed;
+      stats.TXWaits++;
+    }
   }
   return RFAvailable;
 }
@@ -81,7 +83,7 @@ void processTMPacket() {
 
 void receiveTMPacket() {
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
-  LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
+  LT.receiveSXBufferIRQ(0, RX_TIMEOUT_US, NO_WAIT);
   if(!waitForRFReady(RX_TIMEOUT_US, RX_WAIT)) {
     setError(ERROR_CODE::RX_TIMEOUT);
     return;
@@ -98,14 +100,14 @@ TaskResult sendThrottlePacket(unsigned long now) {
   LT.writeUint16(encodedData);          
   LT.endWriteSXBuffer();     
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);  
-  LT.transmitSXBufferIRQ(0, THROTTLE_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
+  LT.transmitSXBufferIRQ(0, THROTTLE_PACKET_LENGTH, TX_TIMEOUT_US, TX_POWER, NO_WAIT);  
   if(requestTM) {
+    lastTMPacketAttempt = now;
     if(!waitForRFReady(TX_TIMEOUT_US, TX_WAIT)) {
       setError(ERROR_CODE::TX_TIMEOUT);
       return { false, 0 };
     }
     receiveTMPacket();
-    lastTMPacketAttempt = now;
   }
   stats.packets++;
   return { true, 0 };                  

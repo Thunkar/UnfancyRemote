@@ -31,7 +31,7 @@ void ONSequence() {
     unsigned long lastCheck = now;
     while(digitalRead(BUTTON)){
       state.setupMode = (lastCheck - now) > SETUP_MODE_DELAY;
-      lastCheck = millis();
+      lastCheck = micros();
       if(state.setupMode) {
         break;
       }
