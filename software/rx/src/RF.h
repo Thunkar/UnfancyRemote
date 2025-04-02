@@ -21,17 +21,22 @@
 #define THROTTLE_PACKET_LENGTH 3                 
 #define TM_PACKET_LENGTH 2
 
-#define RX_TIMEOUT_US 5000
+#define TOTAL_TASK_TIME 10 * 1e3
+// We only timeout if we can potentially overflow the allocated task time
+#define RX_TIMEOUT_US TOTAL_TASK_TIME
+// Adjusted based on the configured LoRa parameters (airtime) 
+// This tx time has to fit in whatever time is left in the task after receiving
 #define TX_TIMEOUT_US 2200
 
-// Adjusted based on the configured LoRa parameters (airtime) and
-// the processing time measured on the device
-#define APPROX_PROCESSING_TIME_US 250
+// Adjusted based on the configured LoRa parameters (airtime) 
 #define APPROX_RX_TIME_US 2000
-#define TARGET_RX_WAIT (APPROX_PROCESSING_TIME_US+APPROX_RX_TIME_US)
-
-#define MAX_WINDOW_SLIDE_US 1e3
-#define WINDOW_SLIDE_STEP_US 10
+// Measured on the device
+#define APPROX_PROCESSING_TIME_US 250
+// Allow for some buffer time where the reception window is open, but we don't expect a packet
+#define BUFFER_US 1000
+#define TARGET_RX_WAIT (APPROX_PROCESSING_TIME_US+APPROX_RX_TIME_US+BUFFER_US)
+// Maximum step to slide the reception window
+#define MAX_APPROX_SLIDE_STEP_US 500
 
 #define DISCONNECT_TIMEOUT_US 250 * 1e3
 

@@ -4,7 +4,6 @@ SX128XLT LT;
 
 unsigned int resetCounter = 0;
 unsigned long lastPacketTime = 0;
-unsigned long consecutiveLostPackets = 1;
 
 struct ReceptionResult { 
   bool success;
@@ -99,7 +98,6 @@ ReceptionResult processReceivedPacket() {
   state.currentRSSI = measuredRSSI;
   state.encodedThrottleValue = (receivedData & THROTTLE_MASK);
   resetCounter = 0;
-  consecutiveLostPackets = 0;
   TMRequest = (receivedData & TM_REQUEST_MASK) >> 12;
 
   return { true, TMRequest };
@@ -112,7 +110,7 @@ void sendTMPacket() {
   LT.writeUint16(encodedBoardVoltage+config.identity);                            
   LT.endWriteSXBuffer();   
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
-  LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, TX_TIMEOUT_US, TX_POWER, NO_WAIT);  
+  LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
   if(!waitForRFReady(TX_TIMEOUT_US, TX_WAIT)) {
     setError(ERROR_CODE::TX_TIMEOUT);
     return;
@@ -123,24 +121,22 @@ void sendTMPacket() {
 TaskResult receiveThrottlePacket(unsigned long now) {
   checkRXTimeout();
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
-  LT.receiveSXBufferIRQ(0, RX_TIMEOUT_US, NO_WAIT);
+  LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
   if(!waitForRFReady(RX_TIMEOUT_US, RX_WAIT)) {
     setError(ERROR_CODE::RX_TIMEOUT);
-    consecutiveLostPackets++;
-      // Slide the reception window if disconnected, so we are not forever locked out of sync
-    // Do a linear backoff to avoid a sudden jump in the window (losing 1-2 packets is not a big deal)
-    double windowSlide = min(MAX_WINDOW_SLIDE_US, (double)WINDOW_SLIDE_STEP_US*consecutiveLostPackets);
-    return { false, !state.isConnected ? (double)-windowSlide : 0 }; 
+    return { false, 0 }; 
   }
   long rxWait = micros() - now;
 
   ReceptionResult result = processReceivedPacket();
-  if(result.success && result.TMRequest) {
+  // Send TM only if reception was successfull, flag was set and we still have time left
+  if(result.success && result.TMRequest && (rxWait + TX_TIMEOUT_US) < TOTAL_TASK_TIME) {
     sendTMPacket();
   }
 
   // Try to schedule next instance of this task so we are listening when the packet lands
-  double offset = (result.success && (rxWait > TARGET_RX_WAIT)) ? (rxWait - TARGET_RX_WAIT) : 0;
+  // Constrain the approximation to avoid overshooting
+  double offset = result.success ? constrain(rxWait - TARGET_RX_WAIT, -MAX_APPROX_SLIDE_STEP_US, MAX_APPROX_SLIDE_STEP_US) : 0;
   stats.rxOffsets+=offset;
   return { true, offset };
 }
