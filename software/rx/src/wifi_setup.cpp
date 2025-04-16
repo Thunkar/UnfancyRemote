@@ -84,8 +84,10 @@ TaskResult doServerWork(unsigned long now) {
   ws.textAll(
     state.boardVoltage + String(",") + 
     state.encodedThrottleValue + String(",") +
-    state.currentRSSI + String(",") +
-    state.currentSNR
+    stats.RSSI + String(",") +
+    stats.SNR + String(",") +
+    stats.minPacketTime + String(",") +
+    stats.maxPacketTime
   );
   return { true, 0 };
 }

@@ -1,6 +1,6 @@
 #include "stats.h"
 
-char *TASK_NAMES[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "printStats", "doServerWork" };
+char *TASK_NAMES[] = { "receiveThrottlePacket", "writePPMValue", "checkBattery", "doServerWork", "printStats" };
 
 unsigned long lastRun = 0;
 
@@ -28,6 +28,9 @@ Stats stats = {
     0,
     // RxOffsets
     0,
+    // RSSI, SNR
+    0,
+    0,
     // Errors
     { 0, 0, 0, 0, 0 }
 };
@@ -51,6 +54,8 @@ void resetStats() {
     stats.TXWaits = 0;
     stats.RXWaits = 0;
     stats.rxOffsets = 0;
+    stats.RSSI = 0;
+    stats.SNR = 0;
     for(int i = 0; i < ERROR_TYPES; i++) {
         stats.errors[i] = 0;
     }
@@ -87,9 +92,9 @@ TaskResult printStats(unsigned long now) {
   Serial.print(F("s | VBat: "));
   Serial.print(state.boardVoltage);
   Serial.print(F("V | SNR: "));
-  Serial.print(state.currentSNR);
+  Serial.print(stats.SNR);
   Serial.print(F("dB | RSSI: "));
-  Serial.print(state.currentRSSI);
+  Serial.print(stats.RSSI);
   Serial.println(F("dBm"));
   Serial.print(F("Frequency: "));
   Serial.print(config.frequency);

@@ -27,7 +27,7 @@ void ONSequence() {
     delay(100);
     digitalWrite(MOTOR, HIGH);
     delay(100);
-    unsigned long now = millis();
+    unsigned long now = micros();
     unsigned long lastCheck = now;
     while(digitalRead(BUTTON)){
       state.setupMode = (lastCheck - now) > SETUP_MODE_DELAY;

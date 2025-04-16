@@ -12,8 +12,8 @@ struct ReceptionResult {
 
 void checkRXTimeout() {
   if(state.isConnected && (micros() - lastPacketTime) > DISCONNECT_TIMEOUT_US) {
-    state.currentSNR = -100;
-    state.currentRSSI = -100;
+    stats.SNR = -100;
+    stats.RSSI = -100;
     state.isConnected = false;
     state.encodedThrottleValue = ENCODED_HALF;
     setError(ERROR_CODE::DISCONNECTED);
@@ -94,8 +94,8 @@ ReceptionResult processReceivedPacket() {
   }
   lastPacketTime = now;
   state.isConnected = true;
-  state.currentSNR = measuredSNR;
-  state.currentRSSI = measuredRSSI;
+  stats.SNR = measuredSNR;
+  stats.RSSI = measuredRSSI;
   state.encodedThrottleValue = (receivedData & THROTTLE_MASK);
   resetCounter = 0;
   TMRequest = (receivedData & TM_REQUEST_MASK) >> 12;

@@ -39,6 +39,8 @@ export const DataContext = createContext<{
   encodedThrottle: number;
   throttle1Buffer: number[];
   throttle2Buffer: number[];
+  minPacketTimeUs: number;
+  maxPacketTimeUs: number;
   channel: number;
   identity: number;
   RSSI: number;
@@ -68,6 +70,8 @@ export const DataContext = createContext<{
   identity: -1,
   RSSI: -100,
   SNR: -15,
+  minPacketTimeUs: 0,
+  maxPacketTimeUs: 0,
   isDual: false,
   websocketStatus: "Uninstantiated",
   calBrake: 0,
@@ -100,6 +104,8 @@ export const DataContextContainer = function ({
   const [channel, setChannel] = useState<number>(-1);
   const [RSSI, setRSSI] = useState<number>(0);
   const [SNR, setSNR] = useState<number>(0);
+  const [minPacketTimeUs, setMinPacketTimeUs] = useState<number>(0);
+  const [maxPacketTimeUs, setMaxPacketTimeUs] = useState<number>(0);
   const [identity, setidentity] = useState<number>(-1);
   const [isDual, setIsDual] = useState<boolean>(false);
   const [calBrake, setCalBrake] = useState<number>(0);
@@ -144,6 +150,8 @@ export const DataContextContainer = function ({
     let encodedThrottle;
     let SNR;
     let RSSI;
+    let minPacketTimeUs;
+    let maxPacketTimeUs;
 
     if (boardType === BoardType.TX) {
       remoteVoltageRaw = data[0];
@@ -156,6 +164,8 @@ export const DataContextContainer = function ({
       encodedThrottle = data[1];
       RSSI = data[2];
       SNR = data[3];
+      minPacketTimeUs = data[4];
+      maxPacketTimeUs = data[5];
     }
 
     if (throttle1Raw !== undefined) {
@@ -194,6 +204,13 @@ export const DataContextContainer = function ({
 
     if (RSSI !== undefined) {
       setRSSI(RSSI);
+    }
+
+    if (minPacketTimeUs !== undefined) {
+      setMinPacketTimeUs(minPacketTimeUs);
+    }
+    if (maxPacketTimeUs !== undefined) {
+      setMaxPacketTimeUs(maxPacketTimeUs);
     }
   }, [lastMessage, isDual]);
 
@@ -245,6 +262,8 @@ export const DataContextContainer = function ({
     throttle2Buffer,
     channel,
     identity,
+    minPacketTimeUs,
+    maxPacketTimeUs,
     SNR,
     RSSI,
     isDual,

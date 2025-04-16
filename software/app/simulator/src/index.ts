@@ -49,7 +49,7 @@ type Config = {
   isDual?: number;
 };
 
-const config = {
+const config: Config = {
   cellN: 12,
   channel: 15,
   identity: 224,
@@ -61,6 +61,14 @@ let boardVoltage = 3.8 * 12;
 
 let snr = 0;
 let rssi = 0;
+
+type Calibration = {
+  calBrake: number;
+  calAcc: number;
+  centerBrake: number;
+  centerAcc: number;
+  inverted: number;
+}
 
 let calAcc = THROTTLE_MAX_MV - 2;
 let calBrake = config.isDual ? THROTTLE_MAX_MV - 2 : THROTTLE_MIN_MV + 2;
@@ -181,7 +189,7 @@ function computeState() {
 
   return simMode === "tx"
     ? [remoteVoltage, boardVoltage, throttle1Raw, throttle2Raw, encodedThrottle]
-    : [boardVoltage, encodedThrottle, rssi, snr];
+    : [boardVoltage, encodedThrottle, rssi, snr, 9.37, 10.5];
 }
 
 async function main() {
@@ -211,7 +219,7 @@ async function main() {
 
   app.post(
     "/settings",
-    (req: Request<any, any, typeof config>, res: Response) => {
+    (req: Request<any, any, Config>, res: Response) => {
       const {
         cellN: newCellN,
         identity: newIdentity,
@@ -226,7 +234,7 @@ async function main() {
     }
   );
 
-  app.get("/settings", (req: Request, res: Response) => {
+  app.get("/settings", (req: Request, res: Response<Config>) => {
     if (simMode === "rx") {
       delete config.isDual;
     }
@@ -239,13 +247,7 @@ async function main() {
       req: Request<
         any,
         any,
-        {
-          calBrake: number;
-          calAcc: number;
-          centerBrake: number;
-          centerAcc: number;
-          inverted: number;
-        }
+        Calibration
       >,
       res: Response
     ) => {
@@ -265,7 +267,7 @@ async function main() {
     }
   );
 
-  app.get("/calibration", (req: Request, res: Response) => {
+  app.get("/calibration", (req: Request, res: Response<Calibration>) => {
     res.status(200).json({
       calBrake,
       calAcc,

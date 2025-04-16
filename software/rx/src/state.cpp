@@ -11,8 +11,6 @@ State state = {
     -1.0, 
     // RF
     true,
-    -100, 
-    -100,
     // Next time tasks should be run in us
     { 0, 0, 0, 0, 0 },
     // Active tasks (server disabled by default)

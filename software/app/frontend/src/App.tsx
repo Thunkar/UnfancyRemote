@@ -17,6 +17,7 @@ import { Throttle } from "./components/throttle";
 import { CalibrationData } from "./components/calibrationData";
 import { RF } from "./components/rf";
 import Divider from "@mui/material/Divider";
+import { TimingData } from "./components/timingData";
 
 function CustomTabPanel({
   children,
@@ -42,6 +43,10 @@ function CustomTabPanel({
   );
 }
 
+function CustomDivider() {
+  return <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+}
+
 function App() {
   const asciiTextRef = useAsciiText({
     animationCharacters: "▒░█",
@@ -59,8 +64,7 @@ function App() {
   // Using a ref callback to bridge the type mismatch.
   const refCallback = (element: HTMLPreElement | null) => {
     if (asciiTextRef) {
-      // Directly manipulate the `.current` property only if it's not `undefined`.
-      asciiTextRef.current = element ?? undefined; // Convert `null` to `undefined`.
+      asciiTextRef.current = element ?? undefined; 
     }
   };
 
@@ -71,6 +75,8 @@ function App() {
     encodedThrottle,
     throttle1Buffer,
     throttle2Buffer,
+    minPacketTimeUs,
+    maxPacketTimeUs,
     channel,
     identity,
     RSSI,
@@ -126,7 +132,7 @@ function App() {
                   cells={1}
                   voltage={remoteVoltage}
                 ></Battery>
-                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+                <CustomDivider/>
               </>
             )}
             <Battery
@@ -134,18 +140,18 @@ function App() {
               cells={cellN}
               voltage={boardVoltage}
             ></Battery>
-            <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+            <CustomDivider/>
             {boardType === BoardType.TX && (
               <>
                 <ThrottleRaw
                   throttle1Values={throttle1Buffer}
                   throttle2Values={throttle2Buffer}
                 ></ThrottleRaw>
-                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+                <CustomDivider/>
               </>
             )}
             <Throttle throttle={encodedThrottle}></Throttle>
-            <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+            <CustomDivider/>
             {boardType === BoardType.TX && (
               <>
                 <CalibrationData
@@ -156,14 +162,16 @@ function App() {
                   inverted={inverted}
                   isDual={isDual}
                 ></CalibrationData>
-                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+                <CustomDivider/>
               </>
             )}
             <RFData channel={channel} identity={identity}></RFData>
             {boardType === BoardType.RX && (
               <>
-                <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+                <CustomDivider/>
                 <RF SNR={SNR} RSSI={RSSI}></RF>
+                <CustomDivider/>
+                <TimingData minPacketTimeUs={minPacketTimeUs} maxPacketTimeUs={maxPacketTimeUs}/>
               </>
             )}
           </CustomTabPanel>

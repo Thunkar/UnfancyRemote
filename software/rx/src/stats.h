@@ -32,6 +32,8 @@ struct Stats {
     unsigned long TXWaits;
     unsigned long RXWaits;
     long rxOffsets; 
+    int RSSI;
+    int SNR;
     unsigned long errors[ERROR_TYPES];
 };
 

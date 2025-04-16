@@ -14,8 +14,6 @@ struct State {
     float boardVoltage;
     // RF
     bool isConnected;
-    long currentRSSI;
-    int currentSNR;
     // Next time tasks should be run in ns
     unsigned long nextRun[N_TASKS];
     // Active tasks
