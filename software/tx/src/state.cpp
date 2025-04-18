@@ -23,6 +23,4 @@ State state = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     // Active tasks (server disabled by default)
     { 1, 1, 1, 1, 1, 1, 1, 0, 1 },
-    // Error
-    false
 };

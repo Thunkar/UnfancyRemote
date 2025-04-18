@@ -32,12 +32,31 @@ struct Stats {
     unsigned long TXWaits;
     unsigned long RXWaits;
     long rxOffsets; 
+    int maxSNR;
+    int minSNR;
     int RSSI;
     int SNR;
     unsigned long errors[ERROR_TYPES];
 };
 
+struct ComputedStats {
+    unsigned long meanPacketTime;
+    int packetsPerSecond;
+    int TMPacketsPerSecond;
+    float taskFrequencies[N_TASKS];
+    float taskMeanTimes[N_TASKS];
+    float taskRatios[N_TASKS];
+    float loopFrequency;
+    float RXWaitMean;
+    float RXWaitsPerSecond;
+    float TXWaitMean;
+    float TXWaitsPerSecond;
+    float meanRXOffsets;
+    float errorsPerSecond[ERROR_TYPES];
+};
+
 extern Stats stats;
+extern ComputedStats computedStats;
 
 TaskResult printStats(unsigned long now);
 

@@ -95,6 +95,12 @@ ReceptionResult processReceivedPacket() {
   lastPacketTime = now;
   state.isConnected = true;
   stats.SNR = measuredSNR;
+  if(measuredSNR > stats.maxSNR) {
+    stats.maxSNR = measuredSNR;
+  }
+  if(measuredSNR < stats.minSNR) {
+    stats.minSNR = measuredSNR;
+  }
   stats.RSSI = measuredRSSI;
   state.encodedThrottleValue = (receivedData & THROTTLE_MASK);
   resetCounter = 0;

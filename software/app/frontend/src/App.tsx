@@ -44,7 +44,7 @@ function CustomTabPanel({
 }
 
 function CustomDivider() {
-  return <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />
+  return <Divider sx={{ margin: "0.5rem 0 0 0.1rem" }} />;
 }
 
 function App() {
@@ -64,7 +64,7 @@ function App() {
   // Using a ref callback to bridge the type mismatch.
   const refCallback = (element: HTMLPreElement | null) => {
     if (asciiTextRef) {
-      asciiTextRef.current = element ?? undefined; 
+      asciiTextRef.current = element ?? undefined;
     }
   };
 
@@ -75,7 +75,10 @@ function App() {
     encodedThrottle,
     throttle1Buffer,
     throttle2Buffer,
+    packetsPerSecond,
+    TMPacketsPerSecond,
     minPacketTimeUs,
+    meanPacketTimeUs,
     maxPacketTimeUs,
     channel,
     identity,
@@ -132,7 +135,7 @@ function App() {
                   cells={1}
                   voltage={remoteVoltage}
                 ></Battery>
-                <CustomDivider/>
+                <CustomDivider />
               </>
             )}
             <Battery
@@ -140,18 +143,18 @@ function App() {
               cells={cellN}
               voltage={boardVoltage}
             ></Battery>
-            <CustomDivider/>
+            <CustomDivider />
             {boardType === BoardType.TX && (
               <>
                 <ThrottleRaw
                   throttle1Values={throttle1Buffer}
                   throttle2Values={throttle2Buffer}
                 ></ThrottleRaw>
-                <CustomDivider/>
+                <CustomDivider />
               </>
             )}
             <Throttle throttle={encodedThrottle}></Throttle>
-            <CustomDivider/>
+            <CustomDivider />
             {boardType === BoardType.TX && (
               <>
                 <CalibrationData
@@ -162,16 +165,22 @@ function App() {
                   inverted={inverted}
                   isDual={isDual}
                 ></CalibrationData>
-                <CustomDivider/>
+                <CustomDivider />
               </>
             )}
             <RFData channel={channel} identity={identity}></RFData>
             {boardType === BoardType.RX && (
               <>
-                <CustomDivider/>
+                <CustomDivider />
                 <RF SNR={SNR} RSSI={RSSI}></RF>
-                <CustomDivider/>
-                <TimingData minPacketTimeUs={minPacketTimeUs} maxPacketTimeUs={maxPacketTimeUs}/>
+                <CustomDivider />
+                <TimingData
+                  packetsPerSecond={packetsPerSecond}
+                  TMPacketsPerSecond={TMPacketsPerSecond}
+                  minPacketTimeUs={minPacketTimeUs}
+                  meanPacketTimeUs={meanPacketTimeUs}
+                  maxPacketTimeUs={maxPacketTimeUs}
+                />
               </>
             )}
           </CustomTabPanel>

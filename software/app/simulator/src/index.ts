@@ -42,6 +42,12 @@ let throttle2Raw = THROTTLE_MAX_MV - 1;
 
 let encodedThrottle = 0;
 
+let maxPacketTime = 100;
+let minPacketTime = 10;
+
+let packetsPerSecond = 100;
+let TMPacketsPerSecond = 4;
+
 type Config = {
   cellN: number;
   channel: number;
@@ -68,7 +74,7 @@ type Calibration = {
   centerBrake: number;
   centerAcc: number;
   inverted: number;
-}
+};
 
 let calAcc = THROTTLE_MAX_MV - 2;
 let calBrake = config.isDual ? THROTTLE_MAX_MV - 2 : THROTTLE_MIN_MV + 2;
@@ -187,9 +193,32 @@ function computeState() {
 
   rssi = limitDecimals(constrain(addNoise(rssi, 0.8, 1), MIN_RSSI, MAX_RSSI));
 
-  return simMode === "tx"
-    ? [remoteVoltage, boardVoltage, throttle1Raw, throttle2Raw, encodedThrottle]
-    : [boardVoltage, encodedThrottle, rssi, snr, 9.37, 10.5];
+  if (simMode === "tx") {
+    return [
+      remoteVoltage,
+      boardVoltage,
+      throttle1Raw,
+      throttle2Raw,
+      encodedThrottle,
+    ];
+  } else {
+    packetsPerSecond = constrain(addNoise(packetsPerSecond, 0.5, 1), 0, 100);
+    TMPacketsPerSecond = constrain(addNoise(TMPacketsPerSecond, 0.5, 1), 0, 4);
+    minPacketTime = constrain(addNoise(minPacketTime, 0.5, 1), 9, 12);
+    maxPacketTime = constrain(addNoise(maxPacketTime, 0.5, 1), 10, 100);
+    const meanPacketTime = (minPacketTime + maxPacketTime) / 2;
+    return [
+      boardVoltage,
+      encodedThrottle,
+      rssi,
+      snr,
+      packetsPerSecond,
+      TMPacketsPerSecond,
+      minPacketTime,
+      meanPacketTime,
+      maxPacketTime,
+    ];
+  }
 }
 
 async function main() {
@@ -217,22 +246,19 @@ async function main() {
     })
   );
 
-  app.post(
-    "/settings",
-    (req: Request<any, any, Config>, res: Response) => {
-      const {
-        cellN: newCellN,
-        identity: newIdentity,
-        channel: newChannel,
-        isDual: newIsDual,
-      } = req.body;
-      cellN = newCellN;
-      config.identity = newIdentity;
-      config.channel = newChannel;
-      config.isDual = newIsDual;
-      res.status(200).send("Ok");
-    }
-  );
+  app.post("/settings", (req: Request<any, any, Config>, res: Response) => {
+    const {
+      cellN: newCellN,
+      identity: newIdentity,
+      channel: newChannel,
+      isDual: newIsDual,
+    } = req.body;
+    cellN = newCellN;
+    config.identity = newIdentity;
+    config.channel = newChannel;
+    config.isDual = newIsDual;
+    res.status(200).send("Ok");
+  });
 
   app.get("/settings", (req: Request, res: Response<Config>) => {
     if (simMode === "rx") {
@@ -243,14 +269,7 @@ async function main() {
 
   app.post(
     "/calibration",
-    (
-      req: Request<
-        any,
-        any,
-        Calibration
-      >,
-      res: Response
-    ) => {
+    (req: Request<any, any, Calibration>, res: Response) => {
       const {
         calBrake: newCalBrake,
         calAcc: newCalAcc,

@@ -86,7 +86,10 @@ TaskResult doServerWork(unsigned long now) {
     state.encodedThrottleValue + String(",") +
     stats.RSSI + String(",") +
     stats.SNR + String(",") +
+    computedStats.packetsPerSecond + String(",") +
+    computedStats.TMPacketsPerSecond + String(",") +
     stats.minPacketTime + String(",") +
+    computedStats.meanPacketTime + String(",") +
     stats.maxPacketTime
   );
   return { true, 0 };

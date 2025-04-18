@@ -8,7 +8,7 @@ import {
   ThemeOptions,
   ThemeProvider,
 } from "@mui/material";
-import { DataContextContainer } from "./utils/context.tsx";
+import { DataContextContainer } from "./components/dataContextContainer.tsx";
 
 export const colors = {
   primary: "#ffd217",
@@ -23,6 +23,12 @@ const themeOptions: ThemeOptions = {
     },
     secondary: {
       main: colors.secondary,
+    },
+  },
+  typography: {
+    fontFamily: "monospace",
+    subtitle2: {
+      color: "darkgrey",
     },
   },
 };
