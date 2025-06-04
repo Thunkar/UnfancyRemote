@@ -130,7 +130,8 @@ TaskResult receiveThrottlePacket(unsigned long now) {
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
   if(!waitForRFReady(RX_TIMEOUT_US, RX_WAIT)) {
     setError(ERROR_CODE::RX_TIMEOUT);
-    return { false, 0 }; 
+    // A timeout means we panic and set an offset equal to the task period, essentially scheduling it immediately
+    return { false, -10e3 }; 
   }
   long rxWait = micros() - now;
 

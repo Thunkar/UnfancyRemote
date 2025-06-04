@@ -26,7 +26,7 @@ const int VBAT = 1;
 
 // Constants
 
-const unsigned long R2 = 6800;
+const unsigned long R2 = 5100;
 const unsigned long R1 = 100000;
 
 const unsigned int ENCODED_MAX = 4095;

@@ -123,7 +123,7 @@ void computeStats(unsigned long now) {
         continue;
     }
     long executions = stats.successes[i] + stats.failures[i];
-    computedStats.taskFrequencies[i] = stats.successes[i] / ellapsed;
+    computedStats.taskFrequencies[i] = executions / ellapsed;
     computedStats.taskMeanTimes[i] = stats.times[i] / (float)executions;
     computedStats.taskRatios[i] = stats.successes[i]/(float)executions;
   }
