@@ -8,6 +8,6 @@
 #include "button.h"
 #include "utils.h"
 
-#define BRAKE_SENSITIVITY 10
+#define BRAKE_SENSITIVITY 20
 
 TaskResult readThrottle(unsigned long now);
