@@ -35,7 +35,7 @@ const unsigned long R1 = 100000;
 const unsigned int ENCODED_MAX = 4095;
 const unsigned int ENCODED_HALF = 2048;
 
-const unsigned int ADC_SAMPLES = 5;
+const unsigned int ADC_SAMPLES = 10;
 
 // Time in us to hold the button to enter setup mode
 
