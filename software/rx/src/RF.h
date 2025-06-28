@@ -22,7 +22,6 @@
 #define TM_PACKET_LENGTH 2
 
 #define TOTAL_TASK_TIME 10 * 1e3
-#define RX_TIMEOUT_US 3500
 // Adjusted based on the configured LoRa parameters (airtime) 
 // This tx time has to fit in whatever time is left in the task after receiving
 #define TX_TIMEOUT_US 2200
@@ -30,10 +29,13 @@
 // Adjusted based on the configured LoRa parameters (airtime) 
 #define APPROX_RX_TIME_US 2200
 // Allow for some buffer time where the reception window is open, but we don't expect a packet
-#define BUFFER_US 600
-#define TARGET_RX_WAIT (APPROX_RX_TIME_US+BUFFER_US)
+#define BUFFER_US 1000
+// The target time to aim the task at
+#define TARGET_RX_WAIT (BUFFER_US + APPROX_RX_TIME_US)
+// We have to add the buffer to the timeout, since we expect to be waiting for that time at least
+#define RX_TIMEOUT_US (BUFFER_US + APPROX_RX_TIME_US + 1000)
 // Maximum step to slide the reception window
-#define MAX_APPROX_SLIDE_STEP_US 50
+#define MAX_APPROX_SLIDE_STEP_US 500
 
 #define DISCONNECT_TIMEOUT_US 250 * 1e3
 

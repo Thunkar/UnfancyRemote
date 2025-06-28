@@ -23,7 +23,7 @@
 #define THROTTLE_PACKET_LENGTH 3                 
 #define TM_PACKET_LENGTH 2
 
-#define RX_TIMEOUT_US 5000
+#define RX_TIMEOUT_US 3500
 #define TX_TIMEOUT_US 2200
 
 #define TM_PERIOD_US 250 * 1e3
