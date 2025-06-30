@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <SPI.h>
 #include "board.h"
 #include "scheduler.h"
 #include "config.h"
@@ -44,20 +43,16 @@ void setup() {
 
   ONSequence();
 
-  if(state.setupMode) {
-    state.activeTasks[3] = true;
-  }
-
   #ifdef DEBUG
   Serial.begin(115200);
   #endif
 
   if(state.setupMode) {
+    state.activeTasks[3] = true;
     if(!SPIFFS.begin(true)){
       Serial.println(F("An Error has occurred while mounting SPIFFS"));
       return;
     }
-    WiFi.softAP("Unfancy Remote RX");
     setupServer();
     #ifdef DEBUG
     Serial.println(F("Setup mode"));
@@ -65,18 +60,7 @@ void setup() {
   } 
 
   PPM_OUTPUT.attach(PPM);
-
-  SPI.begin();
-
-  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
-  {
-    #ifdef DEBUG
-    Serial.println(F("Device error"));
-    #endif
-  }
-
-  LT.setupLoRa(config.frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-  LT.setPeriodBase(PERIODBASE_15_US);
+  setupLoRa();
 
   #ifdef DEBUG
   Serial.println(F("Receiver ready"));

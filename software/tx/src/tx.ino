@@ -64,23 +64,18 @@ void setup() {
   pinMode(RFBUSY, INPUT);
   pinMode(NRESET, OUTPUT);
 
-
   ONSequence();
 
-  if(state.setupMode) {
-    state.activeTasks[7] = true;
-  }
-  
   #ifdef DEBUG
   Serial.begin(115200);
   #endif
 
   if(state.setupMode) {
+    state.activeTasks[7] = true;
     if(!SPIFFS.begin(true)){
       Serial.println(F("An Error has occurred while mounting SPIFFS"));
       return;
     }
-    WiFi.softAP("Unfancy Remote TX");
     setupServer();
     #ifdef DEBUG
     Serial.println(F("Setup mode"));

@@ -7,7 +7,6 @@
 #include "ESPAsyncWebServer.h"
 #include <DNSServer.h>
 #include "SPIFFS.h"
-#include "board.h"
 #include "state.h"
 #include "stats.h"
 #include "config.h"

@@ -2,7 +2,6 @@
 
 SX128XLT LT;
 
-unsigned int resetCounter = 0;
 unsigned long lastPacketTime = 0;
 
 struct ReceptionResult { 
@@ -103,7 +102,6 @@ ReceptionResult processReceivedPacket() {
   }
   stats.RSSI = measuredRSSI;
   state.encodedThrottleValue = (receivedData & THROTTLE_MASK);
-  resetCounter = 0;
   TMRequest = (receivedData & TM_REQUEST_MASK) >> 12;
 
   return { true, TMRequest };
@@ -146,4 +144,18 @@ TaskResult receiveThrottlePacket(unsigned long now) {
   double offset = result.success ? constrain(rxWait - TARGET_RX_WAIT, -MAX_APPROX_SLIDE_STEP_US, MAX_APPROX_SLIDE_STEP_US) : 0;
   stats.rxOffsets+=offset;
   return { true, offset };
+}
+
+void setupLoRa() {
+  SPI.begin();
+
+  if (!LT.begin(NSS, NRESET, RFBUSY, DIO1, DIO2, DIO3, RX_EN, TX_EN, LORA_DEVICE))
+  {
+    #ifdef DEBUG
+    Serial.println(F("Device error"));
+    #endif
+  }
+
+  LT.setupLoRa(config.frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
+  LT.setPeriodBase(PERIODBASE_15_US);
 }

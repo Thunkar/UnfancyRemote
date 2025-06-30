@@ -62,6 +62,7 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
 }
 
 void setupServer(){
+  WiFi.softAP("Unfancy Remote RX");
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.setTTL(300);
   dnsServer.start(53, "*", WiFi.softAPIP());

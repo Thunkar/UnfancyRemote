@@ -1,4 +1,3 @@
-
 #include "PPM.h"
 
 Servo PPM_OUTPUT;

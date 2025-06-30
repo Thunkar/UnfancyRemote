@@ -34,6 +34,10 @@ const unsigned int ENCODED_HALF = 2048;
 
 const unsigned int ADC_SAMPLES = 5;
 
+// Time in us to hold the button to enter setup mode
+
+const int SETUP_MODE_DELAY = 5000 * 1e3; 
+
 // Scheduler
 
 const int N_TASKS = 5;
@@ -42,7 +46,5 @@ struct TaskResult {
     double offset;
 };
 
-// Time in us to hold the button to enter setup mode
 
-const int SETUP_MODE_DELAY = 5000 * 1e3; 
 
