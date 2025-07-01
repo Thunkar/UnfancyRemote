@@ -5,9 +5,10 @@
 const unsigned long periods[N_TASKS] = { 10, 10, 1000, 50, 2000 };
 
 void schedule(task tasks[N_TASKS]) {
+  unsigned long start = micros();
   for(int i = 0; i < N_TASKS; i++) {
     unsigned long now = micros();
-    if(state.activeTasks[i] && (now >= state.nextRun[i])) {
+    if(state.activeTasks[i] && ((now - start) < MAX_LOOP_TIME_US) && (now >= state.nextRun[i])) {
       TaskResult result = tasks[i](now);
       if(result.success) {
         stats.successes[i]++;

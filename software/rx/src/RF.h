@@ -30,11 +30,11 @@
 // Adjusted based on the configured LoRa parameters (airtime) 
 #define APPROX_RX_TIME_US 2200
 // Allow for some buffer time where the reception window is open, but we don't expect a packet
-#define BUFFER_US 2500
+#define BUFFER_US 1000
 // The target time to aim the task at
 #define TARGET_RX_WAIT (BUFFER_US + APPROX_RX_TIME_US)
 // We have to add the buffer to the timeout, since we expect to be waiting for that time at least
-#define RX_TIMEOUT_US (BUFFER_US + APPROX_RX_TIME_US + 2500)
+#define RX_TIMEOUT_US (BUFFER_US + APPROX_RX_TIME_US + 1000)
 // Maximum step to slide the reception window
 #define MAX_APPROX_SLIDE_STEP_US 500
 
