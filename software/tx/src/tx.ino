@@ -45,7 +45,7 @@ void ONSequence() {
 }
 
 
-task tasks[N_TASKS] = { sendThrottlePacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, doServerWork, printStats };
+task tasks[N_TASKS] = { sendThrottlePacket, checkRFStatus, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, doServerWork, printStats };
 
 void loop() {
   schedule(tasks);

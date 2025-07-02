@@ -43,7 +43,7 @@ const int SETUP_MODE_DELAY = 5000 * 1e3;
 
 // Scheduler
 
-const int N_TASKS = 9;
+const int N_TASKS = 10;
 struct TaskResult {
     bool success;
     long offset;

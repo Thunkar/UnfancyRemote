@@ -23,8 +23,8 @@
 #define THROTTLE_PACKET_LENGTH 3                 
 #define TM_PACKET_LENGTH 2
 
-#define RX_TIMEOUT_US 2700
-#define TX_TIMEOUT_US 2200
+#define TX_TIMEOUT_US (3 * 1e3)
+#define RX_TIMEOUT_US (5 * 1e3)
 
 #define TM_PERIOD_US 250 * 1e3
 #define TM_TIMEOUT_US 1000 * 1e3
@@ -40,7 +40,14 @@
 
 extern SX128XLT LT;
 
-extern unsigned long frequency;
+enum RF_STATE {
+    IDLE,
+    RX_WAITING,
+    RX_DONE,
+    TX_WAITING,
+};
 
 TaskResult sendThrottlePacket(unsigned long now);
+TaskResult checkRFStatus(unsigned long now);
+
 void setupLoRa();

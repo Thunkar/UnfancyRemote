@@ -1,6 +1,6 @@
 #include "stats.h"
 
-const char *TASK_NAMES[] = { "sendThrottlePacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "doServerWork", "printStats" };
+const char *TASK_NAMES[] = { "sendThrottlePacket", "checkRFStatus", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "doServerWork", "printStats" };
 
 unsigned long lastRun = 0;
 
@@ -16,11 +16,6 @@ Stats stats = {
     // Loops
     0,
     // Packets
-    0,
-    0,
-    // RFWaits
-    0,
-    0,
     0,
     0,
     // Errors
@@ -40,16 +35,6 @@ ComputedStats computedStats = {
   { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
   // Loop frequency
   0,
-  // RX wait mean
-  0,
-  // RX waits per second
-  0,
-  // TX wait mean
-  0,
-  // TX waits per second
-  0,
-  // Mean RX offsets
-  0,
   // Errors per second
   { 0, 0, 0, 0, 0 }
 };
@@ -65,10 +50,6 @@ void resetStats() {
     stats.loops = 0;
     stats.packets = 0;
     stats.TMPackets = 0;
-    stats.timeWaitingForRX = 0;
-    stats.timeWaitingForTX = 0;
-    stats.TXWaits = 0;
-    stats.RXWaits = 0;
     for(int i = 0; i < ERROR_TYPES; i++) {
         stats.errors[i] = 0;
     }
@@ -110,11 +91,6 @@ void computeStats(unsigned long now) {
   computedStats.loopFrequency = stats.loops / ellapsed;
   computedStats.packetsPerSecond = round(stats.packets / ellapsed);
   computedStats.TMPacketsPerSecond = round(stats.TMPackets / ellapsed);
-
-  computedStats.RXWaitMean = stats.timeWaitingForRX / stats.RXWaits;
-  computedStats.RXWaitsPerSecond = stats.RXWaits / ellapsed;
-  computedStats.TXWaitMean = stats.timeWaitingForTX / stats.TXWaits;
-  computedStats.TXWaitsPerSecond = stats.TXWaits / ellapsed;
   for(int i = 0; i < ERROR_TYPES; i++) {
     computedStats.errorsPerSecond[i] = stats.errors[i] / ellapsed;
   }
@@ -168,23 +144,6 @@ TaskResult printStats(unsigned long now) {
   Serial.println(computedStats.packetsPerSecond);
   Serial.print(F("TM packets/s: "));
   Serial.println(computedStats.TMPacketsPerSecond);
-  Serial.println(F("RF waits: "));
-  char meanTimeWaitingRXBuffer[50];
-  sprintf(meanTimeWaitingRXBuffer, "%-40s %.2fus", "- Mean time waiting for RX:", computedStats.RXWaitMean); 
-  Serial.print(meanTimeWaitingRXBuffer);
-  Serial.println("");
-  char RXWaitsPerSecondBuffer[50];
-  sprintf(RXWaitsPerSecondBuffer, "%-40s %.2f", "- RX waits/s: ", computedStats.RXWaitsPerSecond);
-  Serial.print(RXWaitsPerSecondBuffer);
-  Serial.println("");
-  char meanTimeWaitingTXBuffer[50];
-  sprintf(meanTimeWaitingTXBuffer, "%-40s %.2fus", "- Mean time waiting for TX:", computedStats.TXWaitMean); 
-  Serial.print(meanTimeWaitingTXBuffer);
-  Serial.println("");
-  char TXWaitsPerSecondBuffer[50];
-  sprintf(TXWaitsPerSecondBuffer, "%-40s %.2f", "- TX waits/s: ", computedStats.TXWaitsPerSecond);
-  Serial.println(TXWaitsPerSecondBuffer);
-  Serial.println("");
   sprintf(titleBuffer, "%-23s | %8s", "Error code", "Count/s");
   Serial.println(titleBuffer);
   Serial.println(F("-------------------------------------"));

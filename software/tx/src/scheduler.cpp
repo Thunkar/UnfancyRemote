@@ -2,7 +2,7 @@
 
 // Scheduler
 
-const unsigned long periods[N_TASKS] = { 10, 10, 200, 1000, 100, 50, 20, 50, 2000 };
+const unsigned long periods[N_TASKS] = { 10000, 250, 10000, 200000, 1000000, 100000, 50000, 20000, 50000, 2000000 };
 
 void schedule(task tasks[N_TASKS]) {
   unsigned long start = micros();
@@ -15,7 +15,7 @@ void schedule(task tasks[N_TASKS]) {
       } else {
         stats.failures[i]++;
       }
-      state.nextRun[i] = now + periods[i]*1e3 + result.offset;
+      state.nextRun[i] = now + periods[i] + result.offset;
       unsigned long end = micros();
       unsigned long ellapsed = end - now;
       stats.times[i]+=ellapsed;

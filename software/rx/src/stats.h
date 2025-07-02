@@ -27,11 +27,6 @@ struct Stats {
     unsigned long maxPacketTime;
     unsigned long minPacketTime;
     unsigned long TMPackets;
-    unsigned long timeWaitingForTX;
-    unsigned long timeWaitingForRX;
-    unsigned long TXWaits;
-    unsigned long RXWaits;
-    long rxOffsets; 
     int maxSNR;
     int minSNR;
     int RSSI;
@@ -47,11 +42,6 @@ struct ComputedStats {
     float taskMeanTimes[N_TASKS];
     float taskRatios[N_TASKS];
     float loopFrequency;
-    float RXWaitMean;
-    float RXWaitsPerSecond;
-    float TXWaitMean;
-    float TXWaitsPerSecond;
-    float meanRXOffsets;
     float errorsPerSecond[ERROR_TYPES];
 };
 

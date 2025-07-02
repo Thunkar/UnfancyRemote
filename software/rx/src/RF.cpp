@@ -3,11 +3,23 @@
 SX128XLT LT;
 
 unsigned long lastPacketTime = 0;
+unsigned long lastRFWait = 0;
+
+RF_STATE rfState = RF_STATE::IDLE;
 
 struct ReceptionResult { 
   bool success;
   bool TMRequest; 
 };
+
+void transitionState(RF_STATE newState) {
+  if(rfState != newState) {
+    rfState = newState;
+    if (rfState == RF_STATE::RX_WAITING || rfState == RF_STATE::TX_WAITING) {
+      lastRFWait = micros();
+    }
+  }
+}
 
 void checkRXTimeout() {
   if(state.isConnected && (micros() - lastPacketTime) > DISCONNECT_TIMEOUT_US) {
@@ -26,30 +38,6 @@ bool checkRFBusy() {
 bool checkRFDone(uint16_t IRQMask) {
   uint16_t IRQStatus = LT.readIrqStatus();
   return IRQStatus & IRQMask;
-}
-
-bool waitForRFReady(long timeout, int waitFor) {
-  long ellapsed = 0;
-  bool RFAvailable = false;
-  unsigned long start = micros();
-  uint16_t IRQMask = waitFor == RX_WAIT ? RX_IRQ_MASK : TX_IRQ_MASK;
-  bool notBusy = false;
-  while (!RFAvailable && (timeout-ellapsed) > 0) {
-    notBusy = notBusy || checkRFBusy();
-    RFAvailable = notBusy && checkRFDone(IRQMask);
-    ellapsed = micros() - start;
-  }
-  LT.setMode(MODE_STDBY_RC);
-  if(RFAvailable) {
-    if(waitFor == RX_WAIT) {
-      stats.timeWaitingForRX+=ellapsed;
-      stats.RXWaits++;
-    } else {
-      stats.timeWaitingForTX+=ellapsed;
-      stats.TXWaits++;
-    }
-  }
-  return RFAvailable;
 }
 
 bool checkRXIRQError() {
@@ -115,35 +103,50 @@ void sendTMPacket() {
   LT.endWriteSXBuffer();   
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
-  if(!waitForRFReady(TX_TIMEOUT_US, TX_WAIT)) {
-    setError(ERROR_CODE::TX_TIMEOUT);
-    return;
-  }
   stats.TMPackets++;
 }
 
 TaskResult receiveThrottlePacket(unsigned long now) {
+  if(rfState != RF_STATE::IDLE) {
+    return { false, 0 };
+  }
   checkRXTimeout();
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(RX_TIMEOUT_US, RX_WAIT)) {
-    setError(ERROR_CODE::RX_TIMEOUT);
-    // A timeout means we panic and set an offset equal to the task period, essentially scheduling it immediately
-    return { false, -10e3 }; 
-  }
-  long rxWait = micros() - now;
+  transitionState(RF_STATE::RX_WAITING);
+  return { true, 0 };
+}
 
-  ReceptionResult result = processReceivedPacket();
-  // Send TM only if reception was successfull, flag was set and we still have time left
-  if(result.success && result.TMRequest && (rxWait + TX_TIMEOUT_US) < TOTAL_TASK_TIME) {
-    sendTMPacket();
+TaskResult checkRFStatus(unsigned long now) {
+  if(rfState != RF_STATE::RX_WAITING && rfState != RF_STATE::TX_WAITING) {
+    return { false, 0 };
   }
-
-  // Try to schedule next instance of this task so we are listening when the packet lands
-  // Constrain the approximation to avoid overshooting
-  double offset = result.success ? constrain(rxWait - TARGET_RX_WAIT, -MAX_APPROX_SLIDE_STEP_US, MAX_APPROX_SLIDE_STEP_US) : 0;
-  stats.rxOffsets+=offset;
-  return { true, offset };
+  bool isRx = rfState == RF_STATE::RX_WAITING;
+  unsigned long timeout = isRx ? RX_TIMEOUT_US : TX_TIMEOUT_US;
+  if((now - lastRFWait) > timeout) {
+    ERROR_CODE errorCode = isRx ? ERROR_CODE::RX_TIMEOUT : ERROR_CODE::RX_TIMEOUT;
+    setError(errorCode);
+    LT.setMode(MODE_STDBY_RC);
+    transitionState(RF_STATE::IDLE);
+    return { false, 0 };
+  }
+  uint16_t mask = isRx ? RX_IRQ_MASK : TX_IRQ_MASK;
+  bool RFAvailable = checkRFBusy() && checkRFDone(mask);
+  if(RFAvailable) {
+    LT.setMode(MODE_STDBY_RC);
+    if(isRx) {
+      ReceptionResult result = processReceivedPacket();
+      if (result.success && result.TMRequest) {
+        sendTMPacket();
+        transitionState(RF_STATE::TX_WAITING);
+        return { true, 0 };
+      } 
+    }
+    transitionState(RF_STATE::IDLE);
+    return { true, 0 };
+  } else {
+    return { false, 0 };
+  }
 }
 
 void setupLoRa() {

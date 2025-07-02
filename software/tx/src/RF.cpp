@@ -4,8 +4,20 @@ SX128XLT LT;
 
 unsigned long lastTMPacketAttempt = 0;
 unsigned long lastTMPacketReceived = 0;
+unsigned long lastRFWait = 0;
 
-unsigned int resetTMCounter = 0;
+bool requestTM = false;
+
+RF_STATE rfState = RF_STATE::IDLE;
+
+void transitionState(RF_STATE newState) {
+  if(rfState != newState) {
+    rfState = newState;
+    if (rfState == RF_STATE::RX_WAITING || rfState == RF_STATE::TX_WAITING) {
+      lastRFWait = micros();
+    }
+  }
+}
 
 void checkTMTimeout() {
   if(state.isConnected && (micros() - lastTMPacketReceived) > TM_TIMEOUT_US) {
@@ -23,30 +35,6 @@ bool checkRFBusy() {
 bool checkRFDone(uint16_t IRQMask) {
   uint16_t IRQStatus = LT.readIrqStatus();
   return IRQStatus & IRQMask;
-}
-
-bool waitForRFReady(long timeout, int waitFor) {
-  long ellapsed = 0;
-  bool RFAvailable = false;
-  unsigned long start = micros();
-  uint16_t IRQMask = waitFor == RX_WAIT ? RX_IRQ_MASK : TX_IRQ_MASK;
-  bool notBusy = false;
-  while (!RFAvailable && (timeout-ellapsed) > 0) {
-    notBusy = notBusy || checkRFBusy();
-    RFAvailable = notBusy && checkRFDone(IRQMask);
-    ellapsed = micros() - start;
-  }
-  LT.setMode(MODE_STDBY_RC);
-  if(RFAvailable) {
-    if(waitFor == RX_WAIT) {
-      stats.timeWaitingForRX+=ellapsed;
-      stats.RXWaits++;
-    } else {
-      stats.timeWaitingForTX+=ellapsed;
-      stats.TXWaits++;
-    }
-  }
-  return RFAvailable;
 }
 
 bool checkRXIRQError() {
@@ -77,40 +65,67 @@ void processTMPacket() {
   state.boardVoltage = map(decodedBatteryVoltage, 0, 255, 0, config.cellN * 420)/100.0;
   state.boardCellVoltage = state.boardVoltage/float(config.cellN);
   state.isConnected = true;
-  resetTMCounter = 0;
   lastTMPacketReceived = micros();
 }
 
 void receiveTMPacket() {
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
-  if(!waitForRFReady(RX_TIMEOUT_US, RX_WAIT)) {
-    setError(ERROR_CODE::RX_TIMEOUT);
-    return;
-  }
-  processTMPacket();
 }
 
 TaskResult sendThrottlePacket(unsigned long now) {
+  if(rfState != RF_STATE::IDLE) {
+    return { false, 0 };
+  }
   checkTMTimeout();
   LT.startWriteSXBuffer(0);                     
   LT.writeUint8(config.identity); 
-  bool requestTM = (now - lastTMPacketAttempt) > TM_PERIOD_US;
+  requestTM = (now - lastTMPacketAttempt) > TM_PERIOD_US;
   unsigned int encodedData = (requestTM << 12) + state.encodedThrottleValue;                   
   LT.writeUint16(encodedData);          
   LT.endWriteSXBuffer();     
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.transmitSXBufferIRQ(0, THROTTLE_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
-  if(requestTM) {
-    lastTMPacketAttempt = now;
-    if(!waitForRFReady(TX_TIMEOUT_US, TX_WAIT)) {
-      setError(ERROR_CODE::TX_TIMEOUT);
-      return { false, 0 };
-    }
-    receiveTMPacket();
-  }
-  stats.packets++;
+  transitionState(RF_STATE::TX_WAITING);
   return { true, 0 };                  
+}
+
+TaskResult checkRFStatus(unsigned long now) {
+  if(rfState != RF_STATE::RX_WAITING && rfState != RF_STATE::TX_WAITING) {
+    return { false, 0 };
+  }
+  bool isRx = rfState == RF_STATE::RX_WAITING;
+  unsigned long timeout = isRx ? RX_TIMEOUT_US : TX_TIMEOUT_US;
+  if((now - lastRFWait) > timeout) {
+    requestTM = false;
+    ERROR_CODE errorCode = isRx ? ERROR_CODE::RX_TIMEOUT : ERROR_CODE::RX_TIMEOUT;
+    setError(errorCode);
+    LT.setMode(MODE_STDBY_RC);
+    transitionState(RF_STATE::IDLE);
+    return { false, 0 };
+  }
+  uint16_t mask = isRx ? RX_IRQ_MASK : TX_IRQ_MASK;
+  bool RFAvailable = checkRFBusy() && checkRFDone(mask);
+  if(RFAvailable) {
+    LT.setMode(MODE_STDBY_RC);
+    if(!isRx) {
+      stats.packets++;
+      if(requestTM) {
+        lastTMPacketAttempt = now;
+        requestTM = false;
+        receiveTMPacket();
+        transitionState(RF_STATE::RX_WAITING);
+      } else {
+        transitionState(RF_STATE::IDLE);
+      }
+    } else {
+      processTMPacket();
+      transitionState(RF_STATE::IDLE);
+    }
+    return { true, 0 };
+  } else {
+    return { false, 0 };
+  }
 }
 
 void setupLoRa() {
