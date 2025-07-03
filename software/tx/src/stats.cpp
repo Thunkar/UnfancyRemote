@@ -1,18 +1,18 @@
 #include "stats.h"
 
-const char *TASK_NAMES[] = { "sendThrottlePacket", "checkRFStatus", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "doServerWork", "printStats" };
+const char *TASK_NAMES[] = { "sendThrottlePacket", "checkRFStatus", "receiveTMPacket", "handleTMPacket", "readThrottle", "checkButton", "checkBattery", "displayMode", "setLEDs", "setMotor", "doServerWork", "printStats" };
 
 unsigned long lastRun = 0;
 
 Stats stats = {
     // Successes
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     // Failures
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     // Times
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000 },
     // Loops
     0,
     // Packets
@@ -28,11 +28,11 @@ ComputedStats computedStats = {
   // Packets per second
   0,
   // Task frequencies
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
   // Task mean times
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
   // Task ratios
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
   // Loop frequency
   0,
   // Errors per second
@@ -84,7 +84,7 @@ void computeStats(unsigned long now) {
         continue;
     }
     long executions = stats.successes[i] + stats.failures[i];
-    computedStats.taskFrequencies[i] = executions / ellapsed;
+    computedStats.taskFrequencies[i] = stats.successes[i] / ellapsed;
     computedStats.taskMeanTimes[i] = stats.times[i] / (float)executions;
     computedStats.taskRatios[i] = stats.successes[i]/(float)executions;
   }

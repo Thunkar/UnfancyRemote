@@ -5,7 +5,7 @@ SX128XLT LT;
 unsigned long lastPacketTime = 0;
 unsigned long lastRFWait = 0;
 
-RF_STATE rfState = RF_STATE::IDLE;
+RF_STATE rfState = RF_STATE::READY_FOR_RX;
 
 struct ReceptionResult { 
   bool success;
@@ -45,7 +45,7 @@ bool checkRXIRQError() {
   return !(IRQStatus & (IRQ_CRC_ERROR + IRQ_RX_TX_TIMEOUT + IRQ_SYNCWORD_ERROR));
 }
 
-ReceptionResult processReceivedPacket() {
+ReceptionResult processThrottlePacket() {
   unsigned int TXIdentity = -1;
   unsigned int receivedData = ENCODED_HALF;
   bool TMRequest = false;
@@ -95,7 +95,10 @@ ReceptionResult processReceivedPacket() {
   return { true, TMRequest };
 }
 
-void sendTMPacket() {
+TaskResult sendTMPacket(unsigned long now) {
+  if(rfState != RF_STATE::READY_FOR_TX) {
+    return { false, 0 };
+  }
   LT.startWriteSXBuffer(0);             
   unsigned int boardVoltageAsInt = roundAndCastToInt(state.boardVoltage);
   unsigned int encodedBoardVoltage = map(boardVoltageAsInt, 0, 420 * config.cellN, 0, 255) << 8;        
@@ -104,10 +107,12 @@ void sendTMPacket() {
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.transmitSXBufferIRQ(0, TM_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
   stats.TMPackets++;
+  transitionState(RF_STATE::TX_WAITING);
+  return { true, 0 };
 }
 
 TaskResult receiveThrottlePacket(unsigned long now) {
-  if(rfState != RF_STATE::IDLE) {
+  if(rfState != RF_STATE::READY_FOR_RX) {
     return { false, 0 };
   }
   checkRXTimeout();
@@ -115,6 +120,19 @@ TaskResult receiveThrottlePacket(unsigned long now) {
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
   transitionState(RF_STATE::RX_WAITING);
   return { true, 0 };
+}
+
+TaskResult handleThrottlePacket(unsigned long now) {
+  if(rfState != RF_STATE::RX_DONE) {
+    return { false, 0 };
+  }
+  ReceptionResult result = processThrottlePacket();
+  if (result.success && result.TMRequest) {
+    transitionState(RF_STATE::READY_FOR_TX);
+  } else {
+    transitionState(RF_STATE::READY_FOR_RX);
+  }
+  return { result.success, 0 };
 }
 
 TaskResult checkRFStatus(unsigned long now) {
@@ -127,7 +145,7 @@ TaskResult checkRFStatus(unsigned long now) {
     ERROR_CODE errorCode = isRx ? ERROR_CODE::RX_TIMEOUT : ERROR_CODE::RX_TIMEOUT;
     setError(errorCode);
     LT.setMode(MODE_STDBY_RC);
-    transitionState(RF_STATE::IDLE);
+    transitionState(RF_STATE::READY_FOR_RX);
     return { false, 0 };
   }
   uint16_t mask = isRx ? RX_IRQ_MASK : TX_IRQ_MASK;
@@ -135,14 +153,10 @@ TaskResult checkRFStatus(unsigned long now) {
   if(RFAvailable) {
     LT.setMode(MODE_STDBY_RC);
     if(isRx) {
-      ReceptionResult result = processReceivedPacket();
-      if (result.success && result.TMRequest) {
-        sendTMPacket();
-        transitionState(RF_STATE::TX_WAITING);
-        return { true, 0 };
-      } 
+      transitionState(RF_STATE::RX_DONE);
+    } else {
+      transitionState(RF_STATE::READY_FOR_RX);
     }
-    transitionState(RF_STATE::IDLE);
     return { true, 0 };
   } else {
     return { false, 0 };

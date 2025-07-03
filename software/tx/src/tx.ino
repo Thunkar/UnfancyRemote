@@ -45,7 +45,7 @@ void ONSequence() {
 }
 
 
-task tasks[N_TASKS] = { sendThrottlePacket, checkRFStatus, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, doServerWork, printStats };
+task tasks[N_TASKS] = { sendThrottlePacket, checkRFStatus, receiveTMPacket, handleTMPacket, readThrottle, checkButton, checkBattery, displayMode, setLEDs, setMotor, doServerWork, printStats };
 
 void loop() {
   schedule(tasks);
@@ -71,7 +71,7 @@ void setup() {
   #endif
 
   if(state.setupMode) {
-    state.activeTasks[7] = true;
+    state.activeTasks[10] = true;
     if(!SPIFFS.begin(true)){
       Serial.println(F("An Error has occurred while mounting SPIFFS"));
       return;

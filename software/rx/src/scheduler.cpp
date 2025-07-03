@@ -2,7 +2,7 @@
 
 // Scheduler
 
-const unsigned long periods[N_TASKS] = { 250, 250, 10000, 1000000, 50000, 2000000 };
+const unsigned long periods[N_TASKS] = { 0, 0, 0, 0, 10000, 1000000, 50000, 2000000 };
 
 void schedule(task tasks[N_TASKS]) {
   unsigned long start = micros();

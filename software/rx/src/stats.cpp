@@ -1,18 +1,18 @@
 #include "stats.h"
 
-char *TASK_NAMES[] = { "receiveThrottlePacket", "checkRFStatus", "writePPMValue", "checkBattery", "doServerWork", "printStats" };
+char *TASK_NAMES[] = { "receiveThrottlePacket", "checkRFStatus", "handleThrottlePacket", "sendTMPacket", "writePPMValue", "checkBattery", "doServerWork", "printStats" };
 
 unsigned long lastRun = 0;
 
 Stats stats = {
     // Successes
-    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
     // Failures
-    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
     // Times
-    { 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 0 },
-    { 10000000, 10000000, 10000000, 10000000, 10000000, 10000000 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000, 10000000 },
     // Loops
     0,
     // Packets
@@ -38,11 +38,11 @@ ComputedStats computedStats = {
     // Packets per second
     0,
     // Task frequencies
-    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
     // Task mean times
-    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
     // Task ratios
-    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
     // Loop frequency
     0,
     // Errors per second

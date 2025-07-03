@@ -8,7 +8,7 @@ unsigned long lastRFWait = 0;
 
 bool requestTM = false;
 
-RF_STATE rfState = RF_STATE::IDLE;
+RF_STATE rfState = RF_STATE::READY_FOR_TX;
 
 void transitionState(RF_STATE newState) {
   if(rfState != newState) {
@@ -68,13 +68,29 @@ void processTMPacket() {
   lastTMPacketReceived = micros();
 }
 
-void receiveTMPacket() {
+TaskResult receiveTMPacket(unsigned long now) {
+  if(rfState != RF_STATE::TX_DONE || !requestTM) {
+    return { false, 0 };
+  }
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
+  lastTMPacketAttempt = now;
+  requestTM = false;
+  transitionState(RF_STATE::RX_WAITING);
+  return { true, 0 };
+}
+
+TaskResult handleTMPacket(unsigned long now) {
+  if(rfState != RF_STATE::RX_DONE) {
+    return { false, 0 };
+  }
+  processTMPacket();
+  transitionState(RF_STATE::READY_FOR_TX);
+  return { true, 0 };
 }
 
 TaskResult sendThrottlePacket(unsigned long now) {
-  if(rfState != RF_STATE::IDLE) {
+  if(rfState != RF_STATE::READY_FOR_TX) {
     return { false, 0 };
   }
   checkTMTimeout();
@@ -86,6 +102,7 @@ TaskResult sendThrottlePacket(unsigned long now) {
   LT.endWriteSXBuffer();     
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.transmitSXBufferIRQ(0, THROTTLE_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
+  stats.packets++;
   transitionState(RF_STATE::TX_WAITING);
   return { true, 0 };                  
 }
@@ -101,26 +118,17 @@ TaskResult checkRFStatus(unsigned long now) {
     ERROR_CODE errorCode = isRx ? ERROR_CODE::RX_TIMEOUT : ERROR_CODE::RX_TIMEOUT;
     setError(errorCode);
     LT.setMode(MODE_STDBY_RC);
-    transitionState(RF_STATE::IDLE);
+    transitionState(RF_STATE::READY_FOR_TX);
     return { false, 0 };
   }
   uint16_t mask = isRx ? RX_IRQ_MASK : TX_IRQ_MASK;
   bool RFAvailable = checkRFBusy() && checkRFDone(mask);
   if(RFAvailable) {
     LT.setMode(MODE_STDBY_RC);
-    if(!isRx) {
-      stats.packets++;
-      if(requestTM) {
-        lastTMPacketAttempt = now;
-        requestTM = false;
-        receiveTMPacket();
-        transitionState(RF_STATE::RX_WAITING);
-      } else {
-        transitionState(RF_STATE::IDLE);
-      }
+    if(isRx) {
+      transitionState(RF_STATE::RX_DONE);
     } else {
-      processTMPacket();
-      transitionState(RF_STATE::IDLE);
+      transitionState(requestTM ? RF_STATE::TX_DONE : RF_STATE::READY_FOR_TX);
     }
     return { true, 0 };
   } else {

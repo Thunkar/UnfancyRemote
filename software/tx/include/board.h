@@ -1,7 +1,7 @@
 #pragma once
 
 // Log to serial
-#define DEBUG
+//#define DEBUG
 
 // RF params
 
@@ -43,7 +43,7 @@ const int SETUP_MODE_DELAY = 5000 * 1e3;
 
 // Scheduler
 
-const int N_TASKS = 10;
+const int N_TASKS = 12;
 struct TaskResult {
     bool success;
     long offset;
