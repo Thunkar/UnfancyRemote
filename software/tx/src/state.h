@@ -16,6 +16,7 @@ struct State {
     unsigned long lastModeTransition;
     bool canChangeMode;
     bool setupMode;
+    bool forceRxSetup;
     // Battery voltages
     float batteryVoltage;
     float boardVoltage;

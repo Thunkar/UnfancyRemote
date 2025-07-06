@@ -63,6 +63,19 @@ void configureCalibrationHandler() {
   });
 }
 
+static AsyncCallbackJsonWebHandler *rxSetupHandler = new AsyncCallbackJsonWebHandler("/rxsetup");
+void configureRXSetupHandler() {
+  rxSetupHandler->setMethod(HTTP_POST | HTTP_GET);
+  rxSetupHandler->onRequest([](AsyncWebServerRequest *request, JsonVariant &json) {
+    if(request->method() == HTTP_POST) {
+      state.forceRxSetup = true;
+      request->send(200, "text/plain", "Ok");
+    } else {
+      request->send(404, "text/plain", "Not Found");
+    }
+  });
+}
+
 
 class CaptivePortalHandler : public AsyncWebHandler {
 public:
@@ -102,12 +115,14 @@ void setupServer(){
 
   configureSettingsHandler();
   configureCalibrationHandler();
+  configureRXSetupHandler();
 
   ws.onEvent(onEvent);
   server.addHandler(&ws);
   server.addHandler(new CaptivePortalHandler()).setFilter(ON_AP_FILTER);
   server.addHandler(settingsHandler);
   server.addHandler(calibrationHandler);
+  server.addHandler(rxSetupHandler);
   server.onNotFound([&](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false);
   });

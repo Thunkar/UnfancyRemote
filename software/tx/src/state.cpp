@@ -13,6 +13,7 @@ State state = {
     0, 
     true, 
     false,
+    false,
     // Battery voltages
     -1.0, 
     0.0, 

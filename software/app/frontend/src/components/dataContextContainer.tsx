@@ -55,8 +55,11 @@ export const DataContextContainer = function ({
   const { lastMessage, readyState } = useWebSocket(
     import.meta.env.VITE_WS_URL ?? `ws://${window.location.hostname}`,
     {
-      reconnectAttempts: 10,
-      reconnectInterval: 3000,
+      share: true,
+      retryOnError: true,
+      reconnectAttempts: 10e5,
+      reconnectInterval: 1000,
+      shouldReconnect: () => true,
     },
     connectWebSocket
   );

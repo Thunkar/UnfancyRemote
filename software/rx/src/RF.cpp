@@ -5,6 +5,8 @@ SX128XLT LT;
 unsigned long lastPacketTime = 0;
 unsigned long lastRFWait = 0;
 
+int consecutiveForceRXSetupModePackets = 0;
+
 RF_STATE rfState = RF_STATE::READY_FOR_RX;
 
 struct ReceptionResult { 
@@ -91,6 +93,17 @@ ReceptionResult processThrottlePacket() {
   stats.RSSI = measuredRSSI;
   state.encodedThrottleValue = (receivedData & THROTTLE_MASK);
   TMRequest = (receivedData & TM_REQUEST_MASK) >> 12;
+  bool forceSetupMode = (receivedData & FORCE_SETUP_MODE_MASK) >> 13;
+  if(forceSetupMode) {
+    consecutiveForceRXSetupModePackets++;
+    if(consecutiveForceRXSetupModePackets > FORCE_RX_SETUP_THRESHOLD) {
+      config.forceSetupMode = true;
+      writeConfig();
+      ESP.restart();
+    }
+  } else {
+    consecutiveForceRXSetupModePackets = 0;
+  }
 
   return { true, TMRequest };
 }

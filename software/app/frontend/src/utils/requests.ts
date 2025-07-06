@@ -68,3 +68,15 @@ export async function loadCalibration(): Promise<Calibration> {
     inverted: body.inverted === 1,
   };
 }
+
+export async function forceRXSetup(): Promise<void> {
+  const url = buildUrl("rxsetup");
+
+  await fetch(url, {
+    method: "POST",
+    body: JSON.stringify({}),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}

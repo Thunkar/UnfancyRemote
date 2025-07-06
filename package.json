@@ -1,0 +1,10 @@
+{
+  "name": "aztec-keychain",
+  "version": "0.1.0",
+  "private": true,
+  "repository": "git@github.com:Thunkar/aztec-keychain.git",
+  "author": "thunkar <gregojquiros@gmail.com>",
+  "license": "MIT",
+  "workspaces": ["app/frontend", "app/simulator", "landing", "integration", "contracts"],
+  "packageManager": "yarn@1.22.22"
+}

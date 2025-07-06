@@ -15,10 +15,12 @@ void ONSequence() {
   unsigned long now = micros();
   unsigned long lastCheck = now;
   digitalWrite(LED, HIGH);
-  while(digitalRead(BUTTON)){
-    state.setupMode = (lastCheck - now) > SETUP_MODE_DELAY;
+  while(digitalRead(BUTTON) || config.forceSetupMode){
+    state.setupMode = ((lastCheck - now) > SETUP_MODE_DELAY) || config.forceSetupMode;
     lastCheck = micros();
     if(state.setupMode) {
+      config.forceSetupMode = false;
+      writeConfig();
       digitalWrite(LED, LOW);
       break;
     }

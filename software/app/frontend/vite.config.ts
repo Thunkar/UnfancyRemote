@@ -4,6 +4,9 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    emptyOutDir: false,
+  },
   plugins: [
     react({
       jsxImportSource: "@emotion/react",

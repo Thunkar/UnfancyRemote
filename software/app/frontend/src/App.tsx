@@ -18,6 +18,14 @@ import { CalibrationData } from "./components/calibrationData";
 import { RF } from "./components/rf";
 import Divider from "@mui/material/Divider";
 import { TimingData } from "./components/timingData";
+import { ForceRxSetup } from "./components/forceRxSetup";
+import { css } from "@emotion/react";
+
+const statusContainer = css({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+});
 
 function CustomTabPanel({
   children,
@@ -103,9 +111,24 @@ function App() {
         ref={refCallback}
       ></pre>
       <Typography variant="subtitle1">
-        Board is {import.meta.env.VITE_BOARD_TYPE}. Websocket status:{" "}
-        {websocketStatus}
+        Board is {import.meta.env.VITE_BOARD_TYPE}
       </Typography>
+      <div css={statusContainer}>
+        <Typography variant="subtitle1">Connection</Typography>
+        <div
+          css={[
+            {
+              marginLeft: "0.5rem",
+              borderRadius: "50%",
+              height: "1rem",
+              width: "1rem",
+            },
+            websocketStatus === "Open"
+              ? { backgroundColor: "green" }
+              : { backgroundColor: "red" },
+          ]}
+        ></div>
+      </div>
       <Box
         sx={{
           width: "100%",
@@ -125,6 +148,7 @@ function App() {
               {boardType === BoardType.TX && (
                 <Tab label="Calibration" value="2" />
               )}
+              {boardType === BoardType.TX && <Tab label="Receiver" value="3" />}
             </TabList>
           </Box>
           <CustomTabPanel value="0" currentTab={tab}>
@@ -188,9 +212,14 @@ function App() {
             <Settings />
           </CustomTabPanel>
           {boardType === BoardType.TX && (
-            <CustomTabPanel value="2" currentTab={tab}>
-              <Calibration />
-            </CustomTabPanel>
+            <>
+              <CustomTabPanel value="2" currentTab={tab}>
+                <Calibration />
+              </CustomTabPanel>
+              <CustomTabPanel value="3" currentTab={tab}>
+                <ForceRxSetup />
+              </CustomTabPanel>
+            </>
           )}
         </TabContext>
       </Box>

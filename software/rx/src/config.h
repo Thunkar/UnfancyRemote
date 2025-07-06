@@ -9,6 +9,7 @@ struct Config {
     unsigned int identity; 
     unsigned int cellN;
     unsigned long frequency;
+    bool forceSetupMode;
 };
 
 extern Config config;

@@ -6,3 +6,8 @@ _autosave*
 .vscode/launch.json
 .vscode/ipch
 .DS_Store
+node_modules/
+dest/
+tsconfig.tsbuildinfo
+landing/public/*.bin
+tmp/

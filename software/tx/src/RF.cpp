@@ -6,6 +6,8 @@ unsigned long lastTMPacketAttempt = 0;
 unsigned long lastTMPacketReceived = 0;
 unsigned long lastRFWait = 0;
 
+int forceRxSetupPackets = 0;
+
 bool requestTM = false;
 
 RF_STATE rfState = RF_STATE::READY_FOR_TX;
@@ -25,6 +27,15 @@ void checkTMTimeout() {
     state.boardCellVoltage = 0.0;
     state.isConnected = false;
     setError(ERROR_CODE::DISCONNECTED);
+  }
+}
+
+void checkForceRXSetupReset() {
+  if (state.forceRxSetup && forceRxSetupPackets < MAX_FORCE_RX_SETUP_PACKETS) {
+    forceRxSetupPackets++;
+  } else {
+    state.forceRxSetup = false;
+    forceRxSetupPackets = 0;
   }
 }
 
@@ -94,10 +105,11 @@ TaskResult sendThrottlePacket(unsigned long now) {
     return { false, 0 };
   }
   checkTMTimeout();
+  checkForceRXSetupReset();
   LT.startWriteSXBuffer(0);                     
   LT.writeUint8(config.identity); 
   requestTM = (now - lastTMPacketAttempt) > TM_PERIOD_US;
-  unsigned int encodedData = (requestTM << 12) + state.encodedThrottleValue;                   
+  unsigned int encodedData = (state.forceRxSetup << 13) + (requestTM << 12) + state.encodedThrottleValue;  
   LT.writeUint16(encodedData);          
   LT.endWriteSXBuffer();     
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, THROTTLE_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);

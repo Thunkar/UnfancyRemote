@@ -60,18 +60,21 @@ export function Settings() {
     >
       <TextField
         value={currentCellN}
+        type="number"
         onChange={(event) => setCurrentCellN(parseInt(event.target.value))}
         fullWidth
         label="# of cells"
       />
       <TextField
         value={currentidentity}
+        type="number"
         onChange={(event) => setCurrentidentity(parseInt(event.target.value))}
         fullWidth
         label="TX Identity"
       />
       <TextField
         value={currentChannel}
+        type="number"
         onChange={(event) => setCurrentChannel(parseInt(event.target.value))}
         fullWidth
         label="Channel"
