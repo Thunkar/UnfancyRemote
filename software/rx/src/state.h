@@ -15,7 +15,7 @@ struct State {
     // RF
     bool isConnected;
     // Next time tasks should be run in ns
-    unsigned long nextRun[N_TASKS];
+    unsigned long lastRun[N_TASKS];
     // Active tasks
     bool activeTasks[N_TASKS];
 };

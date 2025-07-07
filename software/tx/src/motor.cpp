@@ -32,5 +32,5 @@ TaskResult setMotor(unsigned long now) {
   if(currentStatus != motorStatus) {
     digitalWrite(MOTOR, motorStatus);
   }
-  return { true, 0 };
+  return { true };
 }

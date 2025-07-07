@@ -8,14 +8,14 @@ void schedule(task tasks[N_TASKS]) {
   unsigned long start = micros();
   for(int i = 0; i < N_TASKS; i++) {
     unsigned long now = micros();
-    if(state.activeTasks[i] && ((now - start) < MAX_LOOP_TIME_US) && (now >= state.nextRun[i])) {
+    if(state.activeTasks[i] && ((now - start) < MAX_LOOP_TIME_US) && ((now  - state.lastRun[i]) >= periods[i])) {
       TaskResult result = tasks[i](now);
       if(result.success) {
         stats.successes[i]++;
       } else {
         stats.failures[i]++;
       }
-      state.nextRun[i] = now + periods[i] + result.offset;
+      state.lastRun[i] = now;
       unsigned long end = micros();
       unsigned long ellapsed = end - now;
       stats.times[i]+=ellapsed;

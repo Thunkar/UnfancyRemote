@@ -139,5 +139,5 @@ TaskResult doServerWork(unsigned long now) {
     state.rawThrottle2Value + String(",") +
     state.encodedThrottleValue
   );
-  return { true, 0 };
+  return { true };
 }

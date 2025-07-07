@@ -71,7 +71,7 @@ TaskResult setLEDs(unsigned long now) {
     }
   }
   FastLED.show();
-  return { true, 0 };
+  return { true };
 }
 
 void setupLEDs() {

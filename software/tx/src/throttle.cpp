@@ -26,5 +26,5 @@ TaskResult readThrottle(unsigned long now) {
                                   map(throttle1Value, min(config.calBrake, config.calAcc), config.centerAcc, 0, ENCODED_HALF); 
     state.encodedThrottleValue = config.inverted ? ENCODED_MAX - scaledValue : scaledValue;
   }
-  return { true, 0 };
+  return { true };
 }

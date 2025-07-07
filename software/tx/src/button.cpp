@@ -35,5 +35,5 @@ TaskResult checkButton(unsigned long now) {
     state.canChangeMode = true;
   }
   state.lastButtonState = reading;
-  return { true, 0 };
+  return { true };
 }

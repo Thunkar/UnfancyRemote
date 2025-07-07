@@ -62,6 +62,6 @@ TaskResult displayMode(unsigned long now) {
       break;
     }
   }
-  return { true, 0 };
+  return { true };
 }
 

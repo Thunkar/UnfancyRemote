@@ -7,5 +7,5 @@ TaskResult checkBattery(unsigned long now) {
   if(state.currentDisplayMode != 1 && state.batteryVoltage <= REMOTE_BATTERY_CELL_V_THR[BATTERY_THRESHOLDS_LENGTH-1]) {
      changeMode(1);
   }
-  return { true, 0 };
+  return { true };
 }

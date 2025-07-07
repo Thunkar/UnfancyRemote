@@ -93,5 +93,5 @@ TaskResult doServerWork(unsigned long now) {
     computedStats.meanPacketTime + String(",") +
     stats.maxPacketTime
   );
-  return { true, 0 };
+  return { true };
 }

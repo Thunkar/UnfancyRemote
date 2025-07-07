@@ -1,7 +1,7 @@
 #pragma once
 
 // Log to serial
-//#define DEBUG
+#define DEBUG
 
 // RF params
 
@@ -46,7 +46,6 @@ const int SETUP_MODE_DELAY = 5000 * 1e3;
 const int N_TASKS = 12;
 struct TaskResult {
     bool success;
-    long offset;
 };
 
 // Battery thresholds: Define what each LED of the remote means in terms of cell voltage, both for the remote and the board. First level is 4 LEDs ON, second one 3, etc. The last level will make the remote rumble and the last LED blink. WARNING: a maximum board voltage of 12S (50.4V) is measurable.

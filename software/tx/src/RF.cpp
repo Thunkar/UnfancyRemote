@@ -80,29 +80,29 @@ void processTMPacket() {
 }
 
 TaskResult receiveTMPacket(unsigned long now) {
-  if(rfState != RF_STATE::TX_DONE || !requestTM) {
-    return { false, 0 };
+  if(rfState != RF_STATE::TX_DONE) {
+    return { false };
   }
   LT.setPacketParams(PREAMBLE_LENGTH, LORA_PACKET_FIXED_LENGTH, TM_PACKET_LENGTH, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.receiveSXBufferIRQ(0, 0, NO_WAIT);
   lastTMPacketAttempt = now;
   requestTM = false;
   transitionState(RF_STATE::RX_WAITING);
-  return { true, 0 };
+  return { true };
 }
 
 TaskResult handleTMPacket(unsigned long now) {
   if(rfState != RF_STATE::RX_DONE) {
-    return { false, 0 };
+    return { false };
   }
   processTMPacket();
   transitionState(RF_STATE::READY_FOR_TX);
-  return { true, 0 };
+  return { true };
 }
 
 TaskResult sendThrottlePacket(unsigned long now) {
   if(rfState != RF_STATE::READY_FOR_TX) {
-    return { false, 0 };
+    return { false };
   }
   checkTMTimeout();
   checkForceRXSetupReset();
@@ -116,22 +116,22 @@ TaskResult sendThrottlePacket(unsigned long now) {
   LT.transmitSXBufferIRQ(0, THROTTLE_PACKET_LENGTH, 0, TX_POWER, NO_WAIT);  
   stats.packets++;
   transitionState(RF_STATE::TX_WAITING);
-  return { true, 0 };                  
+  return { true };                  
 }
 
 TaskResult checkRFStatus(unsigned long now) {
   if(rfState != RF_STATE::RX_WAITING && rfState != RF_STATE::TX_WAITING) {
-    return { false, 0 };
+    return { false };
   }
   bool isRx = rfState == RF_STATE::RX_WAITING;
   unsigned long timeout = isRx ? RX_TIMEOUT_US : TX_TIMEOUT_US;
   if((now - lastRFWait) > timeout) {
     requestTM = false;
-    ERROR_CODE errorCode = isRx ? ERROR_CODE::RX_TIMEOUT : ERROR_CODE::RX_TIMEOUT;
+    ERROR_CODE errorCode = isRx ? ERROR_CODE::RX_TIMEOUT : ERROR_CODE::TX_TIMEOUT;
     setError(errorCode);
     LT.setMode(MODE_STDBY_RC);
     transitionState(RF_STATE::READY_FOR_TX);
-    return { false, 0 };
+    return { false };
   }
   uint16_t mask = isRx ? RX_IRQ_MASK : TX_IRQ_MASK;
   bool RFAvailable = checkRFBusy() && checkRFDone(mask);
@@ -142,9 +142,9 @@ TaskResult checkRFStatus(unsigned long now) {
     } else {
       transitionState(requestTM ? RF_STATE::TX_DONE : RF_STATE::READY_FOR_TX);
     }
-    return { true, 0 };
+    return { true };
   } else {
-    return { false, 0 };
+    return { false };
   }
 }
 
@@ -159,5 +159,4 @@ void setupLoRa() {
   }
 
   LT.setupLoRa(config.frequency, Offset, SpreadingFactor, Bandwidth, CodeRate);
-  LT.setPeriodBase(PERIODBASE_15_US);
 }

@@ -168,5 +168,5 @@ TaskResult printStats(unsigned long now) {
   Serial.println(F("-------------------------------------"));
   #endif
   resetStats();
-  return { true, 0 };
+  return { true };
 }
